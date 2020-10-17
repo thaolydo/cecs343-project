@@ -31,7 +31,9 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -146,8 +148,7 @@ public class LiLyPlayER extends JFrame {
         setSize(350, 250);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        
-        
+               
         // layout stuff 
 
         
@@ -200,7 +201,23 @@ public class LiLyPlayER extends JFrame {
         
         table.addMouseListener(mouseListener);	
         
+        // right click menu testing
         
+        final JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem deleteItem = new JMenuItem("Delete");
+        deleteItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(frame, "Right-click performed on table and choose DELETE");
+            }
+        });
+        popupMenu.add(deleteItem);
+        table.setComponentPopupMenu(popupMenu);
+        
+        
+        
+        // formatting for table
         
         TableColumn column = table.getColumnModel().getColumn(0);
         column.setPreferredWidth(200);
@@ -208,6 +225,7 @@ public class LiLyPlayER extends JFrame {
         column.setPreferredWidth(100);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         
+        // formatting for the general panel
 
         this.setTitle("LiLy PlayER");//change the name to yours
         this.setSize(1000, 575);
