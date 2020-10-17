@@ -26,6 +26,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.table.TableColumn;
 //import javax.swing.text.TableView.TableRow;
 
@@ -51,6 +52,7 @@ public class LiLyPlayER extends JFrame {
     // new table variables 
     
     JTable table;
+    JTextField textField;
     JScrollPane scrollPane; 
     int CurrentSelectedRow;
     
@@ -65,7 +67,6 @@ public class LiLyPlayER extends JFrame {
     	player = new BasicPlayer();
         
         main = new JPanel();
-//        main.setLayout(new FlowLayout());
         
         // buttons removed and edited
         bl1 = new ButtonListener();
@@ -88,15 +89,22 @@ public class LiLyPlayER extends JFrame {
         prev = new JButton("Previous");
         play.addActionListener(bl5);
         
+        /*
+         *  database interaction needs to be coded into here
+         */
+        
         String[] columns = {"Song Title", "Description"}; 
-        Object[][] data = {{"some database link","Rock"}};
+        Object[][] data = {{"some database link to song 1","Rock"},
+        		{"some database link to song 2", "Rock"},
+        		{"some database link to song 3","Rock"},
+        		{"some database link to song 4","Rock"},
+        		{"some database link to song 5","Rock"},};
         
         // table added with scroll pane
         table = new JTable(data, columns);
-        
-        
-        
         scrollPane = new JScrollPane(table);
+        textField = new JTextField(20);
+        textField.setEditable(false);
         
         
         //  menu bar testing
@@ -147,7 +155,12 @@ public class LiLyPlayER extends JFrame {
         c.gridx = 4;
         c.gridy = 0;
         main.add(next, c);
-        c.ipady = 40;      //make this component tall
+        c.gridx = 5;
+        c.gridy = 0;
+        c.weightx = 3.0;
+        main.add(textField, c);
+        
+        c.ipady = 40;     
         c.weightx = 3.0;
         c.weighty = 3.0;
         c.gridwidth = 50;
@@ -164,6 +177,7 @@ public class LiLyPlayER extends JFrame {
             public void mousePressed(MouseEvent e) {
                CurrentSelectedRow = table.getSelectedRow();
                System.out.println("Selected index = " + CurrentSelectedRow);
+               textField.setText((String) data[CurrentSelectedRow][0]);
             }
         };
         
@@ -171,14 +185,14 @@ public class LiLyPlayER extends JFrame {
         
         
         TableColumn column = table.getColumnModel().getColumn(0);
-        column.setPreferredWidth(400);
-        column = table.getColumnModel().getColumn(1);
         column.setPreferredWidth(200);
+        column = table.getColumnModel().getColumn(1);
+        column.setPreferredWidth(100);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         
 
         this.setTitle("LiLy PlayER");//change the name to yours
-        this.setSize(1000, 500);
+        this.setSize(1000, 575);
         this.add(main);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
@@ -189,12 +203,13 @@ public class LiLyPlayER extends JFrame {
         public void actionPerformed(ActionEvent e) {
             String url=null;
             if("Play".equals(e.getActionCommand())){
-            	System.out.println("Playing " + data[CurrentSelectedRow][0]);
+            	System.out.println("Playing :" + data[CurrentSelectedRow][0]);
                 url = (String)data[CurrentSelectedRow][0];   
                 
                 try {
                     player.open(new URL(url));
                     player.play();
+                    textField.setText("Playing :" + data[CurrentSelectedRow][0]);
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Malformed url");
@@ -204,20 +219,32 @@ public class LiLyPlayER extends JFrame {
                 }
             }
             if("pause".equals(e.getActionCommand())){
-            	System.out.println("Pausing/Unpausing");
-            	try {
-					player.pause();
-					player.resume();
-				} catch (BasicPlayerException e1) {
-					e1.printStackTrace();
-				} 
+            	if (player.getStatus() == 4 ) {
+            		try {
+						player.resume();
+						textField.setText("Playing :" + data[CurrentSelectedRow][0]);                        //fix
+					} catch (BasicPlayerException ex) {
+						System.out.println("BasicPlayer exception");
+	                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+					}
+            	}
+            	else {
+            		try {
+						player.pause();
+						textField.setText("Paused :" + data[CurrentSelectedRow][0]);                         //fix
+					} catch (BasicPlayerException ex) {
+						System.out.println("BasicPlayer exception");
+	                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+					}
+            	}
             }
             if("stop".equals(e.getActionCommand())){
             	System.out.println("Stopping playback");
             	try {
 					player.stop();
-				} catch (BasicPlayerException e1) {
-					e1.printStackTrace();
+				} catch (BasicPlayerException ex) {
+					System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
 				}  
             }
             if("next".equals(e.getActionCommand())){
@@ -226,6 +253,7 @@ public class LiLyPlayER extends JFrame {
                 try {
                     player.open(new URL(url));
                     player.play();
+                    textField.setText("Playing :" + data[CurrentSelectedRow][0]);                               //fix
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Malformed url");
@@ -240,6 +268,7 @@ public class LiLyPlayER extends JFrame {
                 try {
                     player.open(new URL(url));
                     player.play();
+                    textField.setText("Playing :" + data[CurrentSelectedRow][0]);                                 //fix
                 } catch (MalformedURLException ex) {
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
                     System.out.println("Malformed url");
