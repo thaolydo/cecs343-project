@@ -157,19 +157,64 @@ public class LiLyPlayER extends JFrame {
         public void actionPerformed(ActionEvent e) {
             String url=null;
             if("Play".equals(e.getActionCommand())){
-            	System.out.println(data[CurrentSelectedRow][0]);
+            	System.out.println("Playing " + data[CurrentSelectedRow][0]);
                 url = (String)data[CurrentSelectedRow][0];   
+                
+                try {
+                    player.open(new URL(url));
+                    player.play();
+                } catch (MalformedURLException ex) {
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Malformed url");
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
-            
-            try {
-                player.open(new URL(url));
-                player.play();
-            } catch (MalformedURLException ex) {
-                Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                System.out.println("Malformed url");
-            } catch (BasicPlayerException ex) {
-                System.out.println("BasicPlayer exception");
-                Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+            if("pause".equals(e.getActionCommand())){
+            	System.out.println("Pausing/Unpausing");
+            	try {
+					player.pause();
+					player.resume();
+				} catch (BasicPlayerException e1) {
+					e1.printStackTrace();
+				} 
+            }
+            if("stop".equals(e.getActionCommand())){
+            	System.out.println("Stopping playback");
+            	try {
+					player.stop();
+				} catch (BasicPlayerException e1) {
+					e1.printStackTrace();
+				}  
+            }
+            if("next".equals(e.getActionCommand())){
+            	System.out.println("Playing next song");
+                url = (String)data[CurrentSelectedRow + 1][0];  
+                try {
+                    player.open(new URL(url));
+                    player.play();
+                } catch (MalformedURLException ex) {
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Malformed url");
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if("prev".equals(e.getActionCommand())){
+            	System.out.println("Playing previous song");
+                url = (String)data[CurrentSelectedRow - 1][0];
+                try {
+                    player.open(new URL(url));
+                    player.play();
+                } catch (MalformedURLException ex) {
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("Malformed url");
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         }
     }
