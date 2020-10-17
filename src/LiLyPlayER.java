@@ -1,12 +1,13 @@
 
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+//import java.awt.BorderLayout;
+//import java.awt.Dimension;
+//import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -15,15 +16,18 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.TableColumn;
-import javax.swing.text.TableView.TableRow;
+//import javax.swing.text.TableView.TableRow;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
@@ -53,10 +57,9 @@ public class LiLyPlayER extends JFrame {
     // moved outside for scope purposes
     
     String[] columns = {"Station URL", "Description"};    
-    Object[][] data = {{"https://mp3.ffh.de/ffhchannels/hqrock.mp3","Rock"},
-            {"https://mp3.ffh.de/ffhchannels/hq80er.mp3", "The 80's"},
-            {"https://mp3.ffh.de/ffhchannels/hqdeutsch.mp3", "Pur Deutsch"},
-            {"https://mp3.ffh.de/ffhchannels/hq90er.mp3", "The 90's"}};
+    Object[][] data = {};
+    
+
     
     public LiLyPlayER() {
     	player = new BasicPlayer();
@@ -91,13 +94,42 @@ public class LiLyPlayER extends JFrame {
         // table added with scroll pane
         table = new JTable(data, columns);
         
+        
+        
         scrollPane = new JScrollPane(table);
+        
+        
+        //  menu bar testing
+        
+        var menuBar = new JMenuBar();
+        var exitIcon = new ImageIcon("src/resources/exit.png");
+
+        var fileMenu = new JMenu("File");
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+
+        var eMenuItem = new JMenuItem("Exit", exitIcon);
+        eMenuItem.setMnemonic(KeyEvent.VK_E);
+        eMenuItem.setToolTipText("Exit application");
+        eMenuItem.addActionListener((event) -> System.exit(0));
+
+        fileMenu.add(eMenuItem);
+        menuBar.add(fileMenu);
+
+        setJMenuBar(menuBar);
+
+        setTitle("Simple menu");
+        setSize(350, 250);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        
         
         // layout stuff 
 
         
         main.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
+        
+        
         c.anchor = GridBagConstraints.PAGE_START;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx = 0;
