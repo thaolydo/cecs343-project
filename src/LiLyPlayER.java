@@ -5,14 +5,22 @@
 //import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+
+import java.awt.datatransfer.DataFlavor;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.TableColumn;
 //import javax.swing.text.TableView.TableRow;
+
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
@@ -58,9 +67,20 @@ public class LiLyPlayER extends JFrame {
     
     // moved outside for scope purposes
     
-    String[] columns = {"Station URL", "Description"};    
-    Object[][] data = {};
+    /*
+     *  database interaction needs to be coded into here, currently junk text
+     */
     
+    String[] columns = {"Song Title", "Description"}; 
+    Object[][] data = {{"some database link to song 1","Rock"},
+    		{"some database link to song 2", "Rock"},
+    		{"some database link to song 3","Rock"},
+    		{"some database link to song 4","Rock"},
+    		{"some database link to song 5","Rock"},};
+    
+    JFrame frame = new JFrame();
+    Object f;
+    File[] files;
 
     
     public LiLyPlayER() {
@@ -89,20 +109,17 @@ public class LiLyPlayER extends JFrame {
         prev = new JButton("Previous");
         play.addActionListener(bl5);
         
-        /*
-         *  database interaction needs to be coded into here
-         */
+
         
-        String[] columns = {"Song Title", "Description"}; 
-        Object[][] data = {{"some database link to song 1","Rock"},
-        		{"some database link to song 2", "Rock"},
-        		{"some database link to song 3","Rock"},
-        		{"some database link to song 4","Rock"},
-        		{"some database link to song 5","Rock"},};
+
         
         // table added with scroll pane
         table = new JTable(data, columns);
+        table.setDropTarget(new MyDropTarget());        
         scrollPane = new JScrollPane(table);
+        frame.add(scrollPane);
+        frame.setSize(400, 400);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        
         textField = new JTextField(20);
         textField.setEditable(false);
         
@@ -181,7 +198,8 @@ public class LiLyPlayER extends JFrame {
             }
         };
         
-        table.addMouseListener(mouseListener);
+        table.addMouseListener(mouseListener);	
+        
         
         
         TableColumn column = table.getColumnModel().getColumn(0);
@@ -196,7 +214,7 @@ public class LiLyPlayER extends JFrame {
         this.add(main);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
-
+    
     class ButtonListener implements ActionListener {
 
         @Override
@@ -279,4 +297,25 @@ public class LiLyPlayER extends JFrame {
             }
         }
     }
+    
+    class MyDropTarget extends DropTarget {
+        public  void drop(DropTargetDropEvent evt) {
+            try {
+                evt.acceptDrop(DnDConstants.ACTION_COPY);
+               
+                List result = new ArrayList();
+                result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                
+
+                for(Object o : result)
+                    System.out.println(o.toString());
+              
+                        }
+            catch (Exception ex){
+                ex.printStackTrace();
+            }
+        }
+    }
 }
+
+
