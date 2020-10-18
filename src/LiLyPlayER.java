@@ -19,6 +19,7 @@ import java.awt.event.MouseListener;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -70,7 +71,7 @@ public class LiLyPlayER extends JFrame {
     // moved outside for scope purposes
     
     /*
-     *  database interaction needs to be coded into here, currently junk text
+     *  data needs to hold the the access urls to the database, probably should be an ArrayList
      */
     
     String[] columns = {"Song Title", "Description"}; 
@@ -87,10 +88,9 @@ public class LiLyPlayER extends JFrame {
     
     public LiLyPlayER() {
     	player = new BasicPlayer();
-        
         main = new JPanel();
         
-        // buttons removed and edited
+        // buttons 
         bl1 = new ButtonListener();
         play = new JButton("Play");
         play.addActionListener(bl1);
@@ -113,9 +113,8 @@ public class LiLyPlayER extends JFrame {
         
 
         
-
-        
         // table added with scroll pane
+        
         table = new JTable(data, columns);
         table.setDropTarget(new MyDropTarget());        
         scrollPane = new JScrollPane(table);
@@ -126,7 +125,7 @@ public class LiLyPlayER extends JFrame {
         textField.setEditable(false);
         
         
-        //  menu bar testing
+        // menu bar testing
         
         var menuBar = new JMenuBar();
         var exitIcon = new ImageIcon("src/resources/exit.png");
@@ -150,12 +149,9 @@ public class LiLyPlayER extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
                
         // layout stuff 
-
         
         main.setLayout(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();
-        
-        
+        GridBagConstraints c = new GridBagConstraints();     
         c.anchor = GridBagConstraints.PAGE_START;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx = 0;
@@ -190,7 +186,8 @@ public class LiLyPlayER extends JFrame {
         
         
  
-        // added mouse listener from example
+        // added mouse listener
+        
         MouseListener mouseListener = new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                CurrentSelectedRow = table.getSelectedRow();
@@ -210,8 +207,16 @@ public class LiLyPlayER extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JOptionPane.showMessageDialog(frame, "Right-click performed on table and choose DELETE");
+                String url = (String)data[CurrentSelectedRow][0];
+                Repository repository = Repository.getInstance();
+                try {
+					repository.removeSong(url);
+				} catch (SQLException ex) {
+					ex.printStackTrace();
+				}
             }
         });
+        
         popupMenu.add(deleteItem);
         table.setComponentPopupMenu(popupMenu);
         
@@ -227,7 +232,7 @@ public class LiLyPlayER extends JFrame {
         
         // formatting for the general panel
 
-        this.setTitle("LiLy PlayER");//change the name to yours
+        this.setTitle("LiLy PlayER");
         this.setSize(1000, 575);
         this.add(main);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -323,10 +328,13 @@ public class LiLyPlayER extends JFrame {
                
                 List result = new ArrayList();
                 result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-                
 
-                for(Object o : result)
-                    System.out.println(o.toString());
+
+                for(Object o : result) {
+                    System.out.println(o.toString());  
+                    Repository repository = Repository.getInstance();
+                	repository.addSong(o.toString());
+                }
               
                         }
             catch (Exception ex){
