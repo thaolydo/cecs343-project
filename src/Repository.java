@@ -1,13 +1,13 @@
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import models.Person;
 
 /**
  * This class is to communicate with Database.
@@ -16,6 +16,8 @@ public class Repository {
     private static volatile Repository repository;
     
     private Connection connection;
+    Statement statement;
+    
     private static final String ENDPOINT = "project-1.cdrsstcipmfu.us-east-1.rds.amazonaws.com";
     private static final String DB_NAME = "project1";
     private static final String DB_URL = String.format("jdbc:mysql://%s/%s", ENDPOINT, DB_NAME);
@@ -82,6 +84,60 @@ public class Repository {
             throw new RuntimeException("Unable to execute the query " + GET_PERSON_QUERY, e);
         }
         return result;
+    }
+    
+    public void getSongs() throws SQLException {
+    	statement = connection.createStatement();
+    	
+    	if(statement.execute("SELECT * FROM song")) {
+    		ResultSet rs = statement.getResultSet();
+    		while(rs.next()) {
+    			// put songs from library into the jTable somehow
+    		}
+    	}
+    }
+
+    
+    public void addSong(String fn) throws SQLException {
+        String filePath = fn;
+        
+        try {
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWD);
+ 
+            String sql = "INSERT INTO project1.songs (File) values (LOAD_FILE(?))";
+            PreparedStatement statement = conn.prepareStatement(sql);
+ 
+            statement.setString(1, filePath);
+ 
+            int row = statement.executeUpdate();
+            if (row > 0) {
+                System.out.println("A Song was added to the library.");
+            }
+            conn.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+    
+    public void removeSong(String fn) throws SQLException {
+    	String filePath = fn;
+        
+        try {
+            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWD);
+ 
+            String sql = "DELETE FROM project1.songs (File) WHERE File=?";
+            PreparedStatement statement = conn.prepareStatement(sql);
+ 
+            statement.setString(1, filePath);
+ 
+            int row = statement.executeUpdate();
+            if (row > 0) {
+                System.out.println("A Song was deleted the library.");
+            }
+            conn.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
 }
