@@ -17,8 +17,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
@@ -41,13 +39,13 @@ import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 //import javax.swing.text.TableView.TableRow;
-
-
+//import javax.swing.table.TableModel;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
 
 
+@SuppressWarnings("serial")
 public class LiLyPlayER extends JFrame {
     BasicPlayer player;
     JPanel main;
@@ -66,6 +64,7 @@ public class LiLyPlayER extends JFrame {
     // new table variables 
     
     JTable table;
+    DefaultTableModel tableModel;
     JTextField textField;
     JScrollPane scrollPane; 
     int CurrentSelectedRow;
@@ -80,14 +79,14 @@ public class LiLyPlayER extends JFrame {
     Object[][] data;
     List<List<String>> tempAL = new ArrayList<List<String>>();
     
-    JFrame frame = new JFrame();
+    JFrame frame;
     //Object f;
     //File[] files;
 
     
     public LiLyPlayER() throws SQLException {
     	player = new BasicPlayer();
-        main = new JPanel();
+        
         
         // buttons 
         bl1 = new ButtonListener();
@@ -110,16 +109,19 @@ public class LiLyPlayER extends JFrame {
         prev = new JButton("Prev");
         prev.addActionListener(bl5);
         
-        // populate table with data from database
+        // initialize and populate table with data from database
         
-        refreshTable();        
-        
+        table = new JTable();
+        refreshTable();
         
         // table added with scroll pane
         
-        table = new JTable(data, columns);
+        //table = new JTable(data, columns);
+        
         table.setDropTarget(new MyDropTarget());        
         scrollPane = new JScrollPane(table);
+        main = new JPanel();
+        frame  = new JFrame();
         frame.add(scrollPane);
         frame.setSize(400, 400);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        
@@ -177,11 +179,12 @@ public class LiLyPlayER extends JFrame {
         main.add(textField, c);
         
         c.ipady = 40;     
-        c.weightx = 3.0;
-        c.weighty = 3.0;
+        c.weightx = 1.0;
+        c.weighty = 1.0;
         c.gridwidth = 50;
         c.gridx = 0;
-        c.gridy = 1;
+        c.gridy = 3;
+        c.fill = GridBagConstraints.BOTH;
         main.add(scrollPane, c);
         main.revalidate();
         scrollPane.revalidate();
@@ -210,10 +213,10 @@ public class LiLyPlayER extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JOptionPane.showMessageDialog(frame, "Right-click performed on table and choose DELETE");
-                String url = (String)data[CurrentSelectedRow][0];
+                String fp = (String)data[CurrentSelectedRow][4];
                 Repository repository = Repository.getInstance();
                 try {
-					repository.removeSong(url);														//make this work
+					repository.removeSong(fp);														//make this work
 				} catch (SQLException ex) {
 					ex.printStackTrace();
 				}
@@ -238,30 +241,65 @@ public class LiLyPlayER extends JFrame {
 //                }
 //            }
 //        });
-        
 //        popupMenu.add(refreshTable);
+        
         popupMenu.add(deleteItem);
 
         
         table.setComponentPopupMenu(popupMenu);
-        
-        
-        
+                
         // formatting for table
         
         TableColumn column = table.getColumnModel().getColumn(0);
         column.setPreferredWidth(200);
         column = table.getColumnModel().getColumn(1);
         column.setPreferredWidth(100);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        
         
         // formatting for the general panel
 
         this.setTitle("LiLy PlayER");
         this.setSize(1000, 575);
         this.add(main);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        
     }
+    
+    class MyDropTarget extends DropTarget {
+    	@SuppressWarnings("rawtypes")
+		public  void drop(DropTargetDropEvent evt) {
+    		try {
+    			evt.acceptDrop(DnDConstants.ACTION_COPY);
+               
+                List result = new ArrayList();
+                result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                for(Object o : result) {
+                	Repository repository = Repository.getInstance();
+                	repository.addSong(o.toString());
+                	}
+                }
+            catch (Exception ex){
+                ex.printStackTrace();
+            }
+        }
+    }
+    
+    void refreshTable() throws SQLException {
+        Repository repository = Repository.getInstance();
+        tempAL = repository.getSongs();
+        data = new Object[tempAL.size()][];
+        int i = 0;
+        for (List<String> o : tempAL) {
+        	data[i++] = o.toArray(new Object[o.size()]);
+        }
+        table.invalidate();
+        table = new JTable(data, columns);
+    }
+    
+    
+    
     
     class ButtonListener implements ActionListener {
 
@@ -285,7 +323,7 @@ public class LiLyPlayER extends JFrame {
             	if (player.getStatus() == 1) {
             		try {
 						player.resume();
-						textField.setText("Playing :" + data[CurrentSelectedRow][4]);                        //fix
+						textField.setText("Playing :" + data[CurrentSelectedRow][4]);
 					} catch (BasicPlayerException ex) {
 						System.out.println("BasicPlayer exception");
 	                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -294,7 +332,7 @@ public class LiLyPlayER extends JFrame {
             	else {
             		try {
 						player.pause();
-						textField.setText("Paused :" + data[CurrentSelectedRow][4]);                         //fix
+						textField.setText("Paused :" + data[CurrentSelectedRow][4]);
 					} catch (BasicPlayerException ex) {
 						System.out.println("BasicPlayer exception");
 	                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -322,7 +360,7 @@ public class LiLyPlayER extends JFrame {
                 	player.stop();
                     player.open(new File(url));
                     player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);                               //fix
+                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
                 } catch (BasicPlayerException ex) {
                     System.out.println("BasicPlayer exception");
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -340,45 +378,12 @@ public class LiLyPlayER extends JFrame {
                 	player.stop();
                     player.open(new File(url));
                     player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);                                 //fix
+                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
                 } catch (BasicPlayerException ex) {
                     System.out.println("BasicPlayer exception");
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-        }
-    }
-    
-
-    
-    class MyDropTarget extends DropTarget {
-        public  void drop(DropTargetDropEvent evt) {
-            try {
-                evt.acceptDrop(DnDConstants.ACTION_COPY);
-               
-                List result = new ArrayList();
-                result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-                for(Object o : result) {
-                	Repository repository = Repository.getInstance();
-                	repository.addSong(o.toString());
-                	}    
-                refreshTable();
-                }
-            
-            
-            catch (Exception ex){
-                ex.printStackTrace();
-            }
-        }
-    }
-    
-    void refreshTable() throws SQLException {
-        Repository repository = Repository.getInstance();
-        tempAL = repository.getSongs();
-        data = new Object[tempAL.size()][];
-        int i = 0;
-        for (List<String> o : tempAL) {
-        	data[i++] = o.toArray(new Object[o.size()]);
         }
     }
 }

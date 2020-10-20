@@ -100,14 +100,12 @@ public class Repository {
     	if(statement.execute("SELECT * FROM songs")) {
     		ResultSet rs = statement.getResultSet();
     		while(rs.next()) {
-    			// put songs from library into the jTable somehow
     			List<String> thisResult = new ArrayList<>();
     			
     			for (int i = 0; i < 5; i++) {
     			    thisResult.add(rs.getString(i + 1));
     			   }
     			   result.add(thisResult);
-    			System.out.println(result);
     		}    		
     	}
     	return result;
@@ -158,13 +156,12 @@ public class Repository {
     }
     
     public void removeSong(String fn) throws SQLException {
-    	String filePath = fn;
         
         try { 
-            String sql = "DELETE FROM project1.songs (File) WHERE File=?";
+            String sql = "Delete FROM songs WHERE SongID = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
  
-            statement.setString(1, filePath);
+            statement.setString(1, fn);
  
             int row = statement.executeUpdate();
             if (row > 0) {
