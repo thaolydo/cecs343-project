@@ -1,4 +1,5 @@
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -7,6 +8,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.mpatric.mp3agic.ID3v1;
+import com.mpatric.mp3agic.InvalidDataException;
+import com.mpatric.mp3agic.Mp3File;
+import com.mpatric.mp3agic.UnsupportedTagException;
 
 
 /**
@@ -86,34 +92,66 @@ public class Repository {
         return result;
     }
     
-    public void getSongs() throws SQLException {
+    public List<List<String>> getSongs() throws SQLException {
     	statement = connection.createStatement();
+		List<List<String>> result = new ArrayList<>();
+
     	
-    	if(statement.execute("SELECT * FROM song")) {
+    	if(statement.execute("SELECT * FROM songs")) {
     		ResultSet rs = statement.getResultSet();
     		while(rs.next()) {
     			// put songs from library into the jTable somehow
-    		}
+    			List<String> thisResult = new ArrayList<>();
+    			
+    			for (int i = 0; i < 5; i++) {
+    			    thisResult.add(rs.getString(i + 1));
+    			   }
+    			   result.add(thisResult);
+    			System.out.println(result);
+    		}    		
     	}
+    	return result;
     }
 
     
-    public void addSong(String fn) throws SQLException {
-        String filePath = fn;
+    public void addSong(String fn) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
+        String artist = new String();
+        String title = new String();
+        String album = new String();
+        String year = new String();
+        //String = genre;
+        String songID = fn;
+        
+        Mp3File mp3file = new Mp3File(fn.toString());
+    	if (mp3file.hasId3v1Tag()) {
+    		System.out.println(fn.toString());
+    		ID3v1 id3v1Tag = mp3file.getId3v1Tag();
+    		System.out.println("Artist: " + id3v1Tag.getArtist());
+    		artist = id3v1Tag.getArtist();
+    		System.out.println("Title: " + id3v1Tag.getTitle());
+    		title = id3v1Tag.getTitle();
+    		System.out.println("Album: " + id3v1Tag.getAlbum());
+    		album = id3v1Tag.getAlbum();
+    		System.out.println("Year: " + id3v1Tag.getYear());
+    		year = id3v1Tag.getYear();
+    		//System.out.println("Genre: " + id3v1Tag.getGenre() + " (" + id3v1Tag.getGenreDescription() + ")");
+    		//genre = id3v1Tag.getGenre();
+    	}
         
         try {
-            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWD);
+            String sql = "INSERT INTO songs(Artist,Title,Album,Year,SongID)" + "VALUES (?,?,?,?,?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
  
-            String sql = "INSERT INTO project1.songs (File) values (LOAD_FILE(?))";
-            PreparedStatement statement = conn.prepareStatement(sql);
- 
-            statement.setString(1, filePath);
+            statement.setString(1, artist);
+            statement.setString(2, title);
+            statement.setString(3, album);
+            statement.setString(4, year);
+            statement.setString(5, songID);
  
             int row = statement.executeUpdate();
             if (row > 0) {
                 System.out.println("A Song was added to the library.");
             }
-            conn.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -122,11 +160,9 @@ public class Repository {
     public void removeSong(String fn) throws SQLException {
     	String filePath = fn;
         
-        try {
-            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWD);
- 
+        try { 
             String sql = "DELETE FROM project1.songs (File) WHERE File=?";
-            PreparedStatement statement = conn.prepareStatement(sql);
+            PreparedStatement statement = connection.prepareStatement(sql);
  
             statement.setString(1, filePath);
  
@@ -134,7 +170,6 @@ public class Repository {
             if (row > 0) {
                 System.out.println("A Song was deleted the library.");
             }
-            conn.close();
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
