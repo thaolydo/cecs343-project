@@ -44,7 +44,6 @@ import javax.swing.table.TableColumn;
 //import javax.swing.table.TableModel;
 
 import com.mpatric.mp3agic.ID3v1;
-import com.mpatric.mp3agic.ID3v1Tag;
 import com.mpatric.mp3agic.Mp3File;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
@@ -73,7 +72,7 @@ public class LiLyPlayER extends JFrame {
     DefaultTableModel tableModel;
     JTextField textField;
     JScrollPane scrollPane;
-    int CurrentSelectedRow;
+    int currentSelectedRow;
 
     // moved outside for scope purposes
 
@@ -84,7 +83,6 @@ public class LiLyPlayER extends JFrame {
 
     String[] columns = { "Artist", "Song Title", "Album", "Year", "File Location" }; // can be changed to dynamically
                                                                                      // based on database columns
-    Object[][] data;
     List<Song> tempAL = new ArrayList<>();
 
     JFrame frame;
@@ -120,7 +118,7 @@ public class LiLyPlayER extends JFrame {
         // initialize and populate table with data from database
 
         table = new JTable();
-        refreshTable();
+        initTable();
 
         // table added with scroll pane
 
@@ -215,9 +213,9 @@ public class LiLyPlayER extends JFrame {
 
         MouseListener mouseListener = new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
-                CurrentSelectedRow = table.getSelectedRow();
-                System.out.println("Selected index = " + CurrentSelectedRow);
-                textField.setText((String) data[CurrentSelectedRow][4]);
+                currentSelectedRow = table.getSelectedRow();
+                System.out.println("Selected index = " + currentSelectedRow);
+                textField.setText((String) tableModel.getValueAt(currentSelectedRow, 4));
             }
         };
 
@@ -231,10 +229,11 @@ public class LiLyPlayER extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(frame, (String) data[CurrentSelectedRow][4] + " has been DELETED");
-                String fp = (String) data[CurrentSelectedRow][4];
+                JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 4) + " has been DELETED");
+                String fp = (String) tableModel.getValueAt(currentSelectedRow, 4);
                 try {
                     repository.removeSong(fp);
+                    tableModel.removeRow(currentSelectedRow);
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                 }
@@ -293,28 +292,21 @@ public class LiLyPlayER extends JFrame {
                 for (Object o : result) {
                     addSong(o.toString());
                 }
-                refreshTable();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
     }
 
-    void refreshTable() throws SQLException {
+    void initTable() {
         tempAL = repository.getAllSongs();
-        data = new Object[tempAL.size()][];
+        Object[][] data = new Object[tempAL.size()][];
         int i = 0;
         for (Song song : tempAL) {
-            data[i++] = new Object[] {
-                song.artist(),
-                song.title(),
-                song.album(),
-                song.year(),
-                song.fileLocation()
-            };
+            data[i++] = songToTableRow(song);
         }
-        table.invalidate();
-        table = new JTable(data, columns);
+        tableModel = new DefaultTableModel(data, columns);
+        table = new JTable(tableModel);
     }
 
     class ButtonListener implements ActionListener {
@@ -323,13 +315,13 @@ public class LiLyPlayER extends JFrame {
         public void actionPerformed(ActionEvent e) {
             String url = null;
             if ("Play".equals(e.getActionCommand())) {
-                System.out.println("Playing :" + data[CurrentSelectedRow][4]);
-                url = (String) data[CurrentSelectedRow][4];
+                System.out.println("Playing :" + tableModel.getValueAt(currentSelectedRow, 4));
+                url = (String) tableModel.getValueAt(currentSelectedRow, 4);
 
                 try {
                     player.open(new File(url));
                     player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                    textField.setText("Playing :" + tableModel.getValueAt(currentSelectedRow, 4));
                 } catch (BasicPlayerException ex) {
                     System.out.println("BasicPlayer exception");
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -339,7 +331,7 @@ public class LiLyPlayER extends JFrame {
                 if (player.getStatus() == 1) {
                     try {
                         player.resume();
-                        textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                        textField.setText("Playing :" + tableModel.getValueAt(currentSelectedRow, 4));
                     } catch (BasicPlayerException ex) {
                         System.out.println("BasicPlayer exception");
                         Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -347,7 +339,7 @@ public class LiLyPlayER extends JFrame {
                 } else {
                     try {
                         player.pause();
-                        textField.setText("Paused :" + data[CurrentSelectedRow][4]);
+                        textField.setText("Paused :" + tableModel.getValueAt(currentSelectedRow, 4));
                     } catch (BasicPlayerException ex) {
                         System.out.println("BasicPlayer exception");
                         Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -365,17 +357,17 @@ public class LiLyPlayER extends JFrame {
             }
             if ("Next".equals(e.getActionCommand())) {
                 System.out.println("Playing next song");
-                if (CurrentSelectedRow == data.length - 1) {
-                    CurrentSelectedRow = 0;
+                if (currentSelectedRow == tableModel.getRowCount() - 1) {
+                    currentSelectedRow = 0;
                 } else {
-                    CurrentSelectedRow++;
+                    currentSelectedRow++;
                 }
-                url = (String) data[CurrentSelectedRow][4];
+                url = (String) tableModel.getValueAt(currentSelectedRow, 4);
                 try {
                     player.stop();
                     player.open(new File(url));
                     player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                    textField.setText("Playing :" + tableModel.getValueAt(currentSelectedRow, 4));
                 } catch (BasicPlayerException ex) {
                     System.out.println("BasicPlayer exception");
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -383,17 +375,17 @@ public class LiLyPlayER extends JFrame {
             }
             if ("Prev".equals(e.getActionCommand())) {
                 System.out.println("Playing previous song");
-                if (CurrentSelectedRow == 0) {
-                    CurrentSelectedRow = data.length - 1;
+                if (currentSelectedRow == 0) {
+                    currentSelectedRow = tableModel.getRowCount() - 1;
                 } else {
-                    CurrentSelectedRow--;
+                    currentSelectedRow--;
                 }
-                url = (String) data[CurrentSelectedRow][4];
+                url = (String) tableModel.getValueAt(currentSelectedRow, 4);
                 try {
                     player.stop();
                     player.open(new File(url));
                     player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                    textField.setText("Playing :" + tableModel.getValueAt(currentSelectedRow, 4));
                 } catch (BasicPlayerException ex) {
                     System.out.println("BasicPlayer exception");
                     Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
@@ -421,9 +413,20 @@ public class LiLyPlayER extends JFrame {
                 .build();
             
             repository.addSong(song);
+            tableModel.addRow(songToTableRow(song));
             System.out.printf("Successfully added the song %s\n", fileName);
         } catch (Exception e) {
             throw new RuntimeException("Unable to add the song " + fileName, e);
         }
+    }
+
+    private Object[] songToTableRow(Song song) {
+        return new Object[] {
+            song.artist(),
+            song.title(),
+            song.album(),
+            song.year(),
+            song.fileLocation()
+        };
     }
 }
