@@ -1,5 +1,4 @@
 
-
 //import java.awt.BorderLayout;
 //import java.awt.Dimension;
 //import java.awt.FlowLayout;
@@ -17,8 +16,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
@@ -27,6 +24,7 @@ import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -38,14 +36,19 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 //import javax.swing.text.TableView.TableRow;
+//import javax.swing.table.TableModel;
 
+import com.mpatric.mp3agic.ID3v1;
+import com.mpatric.mp3agic.Mp3File;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
+import models.Song;
 
-
+@SuppressWarnings("serial")
 public class LiLyPlayER extends JFrame {
     BasicPlayer player;
     JPanel main;
@@ -54,79 +57,84 @@ public class LiLyPlayER extends JFrame {
     JButton stop;
     JButton next;
     JButton prev;
-    JLabel  nowPlaying;
+    JLabel nowPlaying;
     ButtonListener bl1;
     ButtonListener bl2;
     ButtonListener bl3;
     ButtonListener bl4;
     ButtonListener bl5;
-    
-    // new table variables 
-    
-    JTable table;
-    JTextField textField;
-    JScrollPane scrollPane; 
-    int CurrentSelectedRow;
-    
-    // moved outside for scope purposes
-    
-    /*
-     *  data needs to hold the the access urls to the database, probably should be an ArrayList
-     */
-    
-    String[] columns = {"Song Title", "Description"}; 
-    Object[][] data = {{"some database link to song 1","Rock"},
-    		{"some database link to song 2", "Rock"},
-    		{"some database link to song 3","Rock"},
-    		{"some database link to song 4","Rock"},
-    		{"some database link to song 5","Rock"},};
-    
-    JFrame frame = new JFrame();
-    Object f;
-    File[] files;
 
-    
-    public LiLyPlayER() {
-    	player = new BasicPlayer();
-        main = new JPanel();
-        
-        // buttons 
+    // new table variables
+
+    JTable table;
+    DefaultTableModel tableModel;
+    JTextField textField;
+    JScrollPane scrollPane;
+    int CurrentSelectedRow;
+
+    // moved outside for scope purposes
+
+    /*
+     * data needs to hold the the access urls to the database, probably should be an
+     * ArrayList
+     */
+
+    String[] columns = { "Artist", "Song Title", "Album", "Year", "File Location" }; // can be changed to dynamically
+                                                                                     // based on database columns
+    Object[][] data;
+    List<Song> tempAL = new ArrayList<>();
+
+    JFrame frame;
+    // Object f;
+    // File[] files;
+
+    private static final Repository repository = Repository.getInstance();
+
+    public LiLyPlayER() throws SQLException {
+        player = new BasicPlayer();
+
+        // buttons
         bl1 = new ButtonListener();
         play = new JButton("Play");
         play.addActionListener(bl1);
-        
+
         bl2 = new ButtonListener();
         pause = new JButton("Pause");
-        play.addActionListener(bl2);
-        
+        pause.addActionListener(bl2);
+
         bl3 = new ButtonListener();
         stop = new JButton("Stop");
-        play.addActionListener(bl3);
-        
+        stop.addActionListener(bl3);
+
         bl4 = new ButtonListener();
         next = new JButton("Next");
-        play.addActionListener(bl4);
-        
-        bl5 = new ButtonListener();
-        prev = new JButton("Previous");
-        play.addActionListener(bl5);
-        
+        next.addActionListener(bl4);
 
-        
+        bl5 = new ButtonListener();
+        prev = new JButton("Prev");
+        prev.addActionListener(bl5);
+
+        // initialize and populate table with data from database
+
+        table = new JTable();
+        refreshTable();
+
         // table added with scroll pane
-        
-        table = new JTable(data, columns);
-        table.setDropTarget(new MyDropTarget());        
+
+        // table = new JTable(data, columns);
+
+        table.setDropTarget(new MyDropTarget());
         scrollPane = new JScrollPane(table);
+        main = new JPanel();
+        frame = new JFrame();
         frame.add(scrollPane);
         frame.setSize(400, 400);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        
-        textField = new JTextField(20);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        textField = new JTextField(500);
         textField.setEditable(false);
-        
-        
-        // menu bar testing
-        
+
+        // menu bar
+
         var menuBar = new JMenuBar();
         var exitIcon = new ImageIcon("src/resources/exit.png");
 
@@ -138,6 +146,17 @@ public class LiLyPlayER extends JFrame {
         eMenuItem.setToolTipText("Exit application");
         eMenuItem.addActionListener((event) -> System.exit(0));
 
+        var addMenuItem = new JMenuItem("Add Song", exitIcon);
+        addMenuItem.setMnemonic(KeyEvent.VK_A);
+        addMenuItem.setToolTipText("Add song to library");
+        addMenuItem.addActionListener((event) -> {
+            JFileChooser jfc = new JFileChooser();
+            jfc.showOpenDialog(null);
+            File inFile = jfc.getSelectedFile();
+            addSong(inFile.toString());
+        });
+
+        fileMenu.add(addMenuItem);
         fileMenu.add(eMenuItem);
         menuBar.add(fileMenu);
 
@@ -147,11 +166,11 @@ public class LiLyPlayER extends JFrame {
         setSize(350, 250);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-               
-        // layout stuff 
-        
+
+        // layout stuff
+
         main.setLayout(new GridBagLayout());
-        GridBagConstraints c = new GridBagConstraints();     
+        GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.PAGE_START;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx = 0;
@@ -173,175 +192,230 @@ public class LiLyPlayER extends JFrame {
         c.gridy = 0;
         c.weightx = 3.0;
         main.add(textField, c);
-        
-        c.ipady = 40;     
-        c.weightx = 3.0;
-        c.weighty = 3.0;
+
+        c.ipady = 40;
+        c.weightx = 1.0;
+        c.weighty = 1.0;
         c.gridwidth = 50;
         c.gridx = 0;
-        c.gridy = 1;
+        c.gridy = 3;
+        c.fill = GridBagConstraints.BOTH;
         main.add(scrollPane, c);
         main.revalidate();
         scrollPane.revalidate();
-        
-        
- 
+
         // added mouse listener
-        
+
         MouseListener mouseListener = new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
-               CurrentSelectedRow = table.getSelectedRow();
-               System.out.println("Selected index = " + CurrentSelectedRow);
-               textField.setText((String) data[CurrentSelectedRow][0]);
+                CurrentSelectedRow = table.getSelectedRow();
+                System.out.println("Selected index = " + CurrentSelectedRow);
+                textField.setText((String) data[CurrentSelectedRow][4]);
             }
         };
-        
-        table.addMouseListener(mouseListener);	
-        
+
+        table.addMouseListener(mouseListener);
+
         // right click menu testing
-        
+
         final JPopupMenu popupMenu = new JPopupMenu();
         JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(frame, "Right-click performed on table and choose DELETE");
-                String url = (String)data[CurrentSelectedRow][0];
-                Repository repository = Repository.getInstance();
+                JOptionPane.showMessageDialog(frame, (String) data[CurrentSelectedRow][4] + " has been DELETED");
+                String fp = (String) data[CurrentSelectedRow][4];
                 try {
-					repository.removeSong(url);
-				} catch (SQLException ex) {
-					ex.printStackTrace();
-				}
+                    repository.removeSong(fp);
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
             }
         });
-        
+
+        // refreshTable.addActionListener(new ActionListener() {
+        //
+        // @Override
+        // public void actionPerformed(ActionEvent e) {
+        // JOptionPane.showMessageDialog(frame, "Right-click performed on table and
+        // choose refresh");
+        // try {
+        // tempAL = repository.getAllSongs();
+        // } catch (SQLException ex) {
+        // ex.printStackTrace();
+        // }
+        // Object[][] tempTable = new Object[tempAL.size()][];
+        // int i = 0;
+        // for (List<String> o : tempAL) {
+        // tempTable[i++] = o.toArray(new String[o.size()]);
+        // }
+        // }
+        // });
+        // popupMenu.add(refreshTable);
+
         popupMenu.add(deleteItem);
+
         table.setComponentPopupMenu(popupMenu);
-        
-        
-        
+
         // formatting for table
-        
+
         TableColumn column = table.getColumnModel().getColumn(0);
         column.setPreferredWidth(200);
         column = table.getColumnModel().getColumn(1);
         column.setPreferredWidth(100);
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        
+
         // formatting for the general panel
 
         this.setTitle("LiLy PlayER");
         this.setSize(1000, 575);
         this.add(main);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    }
-    
-    class ButtonListener implements ActionListener {
 
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            String url=null;
-            if("Play".equals(e.getActionCommand())){
-            	System.out.println("Playing :" + data[CurrentSelectedRow][0]);
-                url = (String)data[CurrentSelectedRow][0];   
-                
-                try {
-                    player.open(new URL(url));
-                    player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][0]);
-                } catch (MalformedURLException ex) {
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                    System.out.println("Malformed url");
-                } catch (BasicPlayerException ex) {
-                    System.out.println("BasicPlayer exception");
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if("pause".equals(e.getActionCommand())){
-            	if (player.getStatus() == 4 ) {
-            		try {
-						player.resume();
-						textField.setText("Playing :" + data[CurrentSelectedRow][0]);                        //fix
-					} catch (BasicPlayerException ex) {
-						System.out.println("BasicPlayer exception");
-	                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-					}
-            	}
-            	else {
-            		try {
-						player.pause();
-						textField.setText("Paused :" + data[CurrentSelectedRow][0]);                         //fix
-					} catch (BasicPlayerException ex) {
-						System.out.println("BasicPlayer exception");
-	                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-					}
-            	}
-            }
-            if("stop".equals(e.getActionCommand())){
-            	System.out.println("Stopping playback");
-            	try {
-					player.stop();
-				} catch (BasicPlayerException ex) {
-					System.out.println("BasicPlayer exception");
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-				}  
-            }
-            if("next".equals(e.getActionCommand())){
-            	System.out.println("Playing next song");
-                url = (String)data[CurrentSelectedRow + 1][0];  
-                try {
-                    player.open(new URL(url));
-                    player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][0]);                               //fix
-                } catch (MalformedURLException ex) {
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                    System.out.println("Malformed url");
-                } catch (BasicPlayerException ex) {
-                    System.out.println("BasicPlayer exception");
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            if("prev".equals(e.getActionCommand())){
-            	System.out.println("Playing previous song");
-                url = (String)data[CurrentSelectedRow - 1][0];
-                try {
-                    player.open(new URL(url));
-                    player.play();
-                    textField.setText("Playing :" + data[CurrentSelectedRow][0]);                                 //fix
-                } catch (MalformedURLException ex) {
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                    System.out.println("Malformed url");
-                } catch (BasicPlayerException ex) {
-                    System.out.println("BasicPlayer exception");
-                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        }
     }
-    
+
     class MyDropTarget extends DropTarget {
-        public  void drop(DropTargetDropEvent evt) {
+        @SuppressWarnings("rawtypes")
+        public void drop(DropTargetDropEvent evt) {
             try {
                 evt.acceptDrop(DnDConstants.ACTION_COPY);
-               
+
                 List result = new ArrayList();
                 result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
-
-
-                for(Object o : result) {
-                    System.out.println(o.toString());  
-                    Repository repository = Repository.getInstance();
-                	repository.addSong(o.toString());
+                for (Object o : result) {
+                    addSong(o.toString());
                 }
-              
-                        }
-            catch (Exception ex){
+                refreshTable();
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
     }
+
+    void refreshTable() throws SQLException {
+        tempAL = repository.getAllSongs();
+        data = new Object[tempAL.size()][];
+        int i = 0;
+        for (Song song : tempAL) {
+            data[i++] = new Object[] {
+                song.artist(),
+                song.title(),
+                song.album(),
+                song.year(),
+                song.fileLocation()
+            };
+        }
+        table.invalidate();
+        table = new JTable(data, columns);
+    }
+
+    class ButtonListener implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String url = null;
+            if ("Play".equals(e.getActionCommand())) {
+                System.out.println("Playing :" + data[CurrentSelectedRow][4]);
+                url = (String) data[CurrentSelectedRow][4];
+
+                try {
+                    player.open(new File(url));
+                    player.play();
+                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if ("Pause".equals(e.getActionCommand())) {
+                if (player.getStatus() == 1) {
+                    try {
+                        player.resume();
+                        textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                    } catch (BasicPlayerException ex) {
+                        System.out.println("BasicPlayer exception");
+                        Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                } else {
+                    try {
+                        player.pause();
+                        textField.setText("Paused :" + data[CurrentSelectedRow][4]);
+                    } catch (BasicPlayerException ex) {
+                        System.out.println("BasicPlayer exception");
+                        Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+            if ("Stop".equals(e.getActionCommand())) {
+                System.out.println("Stopping playback");
+                try {
+                    player.stop();
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if ("Next".equals(e.getActionCommand())) {
+                System.out.println("Playing next song");
+                if (CurrentSelectedRow == data.length - 1) {
+                    CurrentSelectedRow = 0;
+                } else {
+                    CurrentSelectedRow++;
+                }
+                url = (String) data[CurrentSelectedRow][4];
+                try {
+                    player.stop();
+                    player.open(new File(url));
+                    player.play();
+                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if ("Prev".equals(e.getActionCommand())) {
+                System.out.println("Playing previous song");
+                if (CurrentSelectedRow == 0) {
+                    CurrentSelectedRow = data.length - 1;
+                } else {
+                    CurrentSelectedRow--;
+                }
+                url = (String) data[CurrentSelectedRow][4];
+                try {
+                    player.stop();
+                    player.open(new File(url));
+                    player.play();
+                    textField.setText("Playing :" + data[CurrentSelectedRow][4]);
+                } catch (BasicPlayerException ex) {
+                    System.out.println("BasicPlayer exception");
+                    Logger.getLogger(LiLyPlayER.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+    }
+
+    void addSong(String fileName) {
+        System.out.printf("Adding song: %s\n", fileName);
+
+        try {
+            Mp3File mp3file = new Mp3File(fileName.toString());
+            if (!mp3file.hasId3v1Tag()) {
+                System.out.println("Unable to add the song due to no tags available for this song");
+                return;
+            }
+            ID3v1 id3v1Tag = mp3file.getId3v1Tag();
+            Song song = Song.builder()
+                .title(id3v1Tag.getTitle())
+                .artist(id3v1Tag.getArtist())
+                .album(id3v1Tag.getAlbum())
+                .fileLocation(fileName)
+                .year(Integer.parseInt(id3v1Tag.getYear()))
+                .build();
+            
+            repository.addSong(song);
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to add the song " + fileName, e);
+        }
+    }
 }
-
-

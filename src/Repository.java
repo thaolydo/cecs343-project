@@ -1,4 +1,5 @@
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -8,6 +9,11 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.mpatric.mp3agic.InvalidDataException;
+import com.mpatric.mp3agic.UnsupportedTagException;
+
+import models.Song;
+
 
 /**
  * This class is to communicate with Database.
@@ -16,7 +22,6 @@ public class Repository {
     private static volatile Repository repository;
     
     private Connection connection;
-    Statement statement;
     
     private static final String ENDPOINT = "project-1.cdrsstcipmfu.us-east-1.rds.amazonaws.com";
     private static final String DB_NAME = "project1";
@@ -25,8 +30,11 @@ public class Repository {
     private static final String DB_PASSWD = "Test1234";
     private static final String SCHEMA_NAME = "APP";
 
-    // Prepared statement string
-    private static final String GET_PERSON_QUERY = "SELECT * FROM person";
+    // Statement string
+    private static final String GET_SONGS_QUERY = "SELECT * FROM songs";
+    private static final String INSERT_SONG_STATEMENT =
+        "INSERT INTO songs(Artist, Title, Album, Location, Year) VALUES (?,?,?,?,?)";
+    private static final String DELETE_SONG_STATEMENT = "Delete FROM songs WHERE Location = ?";
 
 
     /** Private default constructor for singleton pattern */
@@ -67,77 +75,49 @@ public class Repository {
         }
         return repository;
     }
-
-    /**
-     * This method is to retrieve all records in the WritingGroup table.
-     * 
-     * @return all records in the WritingGroup table.
-     */
-    public List<String> getAllPersonNames() {
-        List<String> result = new ArrayList<>();
+    
+    public List<Song> getAllSongs() {
+		List<Song> result = new ArrayList<>();
         try (Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery(GET_PERSON_QUERY)) {
+            ResultSet rs = statement.executeQuery(GET_SONGS_QUERY)) {
             while (rs.next()) {
-                result.add(rs.getString("name"));
+                Song song = Song.builder()
+                    .title(rs.getString("Title"))
+                    .artist(rs.getString("Artist"))
+                    .album(rs.getString("Album"))
+                    .fileLocation(rs.getString("Location"))
+                    .year(rs.getInt("Year"))
+                    .build();
+
+                result.add(song);
             }
+            return result;
         } catch (SQLException e) {
-            throw new RuntimeException("Unable to execute the query " + GET_PERSON_QUERY, e);
+            throw new RuntimeException("Unable to execute the query " + GET_SONGS_QUERY, e);
         }
-        return result;
-    }
-    
-    public void getSongs() throws SQLException {
-    	statement = connection.createStatement();
-    	
-    	if(statement.execute("SELECT * FROM song")) {
-    		ResultSet rs = statement.getResultSet();
-    		while(rs.next()) {
-    			// put songs from library into the jTable somehow
-    		}
-    	}
     }
 
-    
-    public void addSong(String fn) throws SQLException {
-        String filePath = fn;
-        
-        try {
-            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWD);
- 
-            String sql = "INSERT INTO project1.songs (File) values (LOAD_FILE(?))";
-            PreparedStatement statement = conn.prepareStatement(sql);
- 
-            statement.setString(1, filePath);
- 
-            int row = statement.executeUpdate();
-            if (row > 0) {
-                System.out.println("A Song was added to the library.");
-            }
-            conn.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+    public void addSong(Song song) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
+        try (PreparedStatement statement = connection.prepareStatement(INSERT_SONG_STATEMENT)) {
+            statement.setString(1, song.artist());
+            statement.setString(2, song.title());
+            statement.setString(3, song.album());
+            statement.setString(4, song.fileLocation());
+            statement.setInt(5, song.year());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + INSERT_SONG_STATEMENT, e);
         }
     }
     
-    public void removeSong(String fn) throws SQLException {
-    	String filePath = fn;
-        
-        try {
-            Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWD);
- 
-            String sql = "DELETE FROM project1.songs (File) WHERE File=?";
-            PreparedStatement statement = conn.prepareStatement(sql);
- 
-            statement.setString(1, filePath);
- 
-            int row = statement.executeUpdate();
-            if (row > 0) {
-                System.out.println("A Song was deleted the library.");
-            }
-            conn.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+    public void removeSong(String fileLocation) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(DELETE_SONG_STATEMENT)) {
+            statement.setString(1, fileLocation);
+            statement.executeUpdate();
+        }  catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + DELETE_SONG_STATEMENT);
         }
+
     }
 
 }
