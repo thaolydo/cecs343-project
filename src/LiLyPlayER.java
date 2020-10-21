@@ -17,6 +17,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -40,6 +42,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 //import javax.swing.text.TableView.TableRow;
 //import javax.swing.table.TableModel;
+
+import com.mpatric.mp3agic.InvalidDataException;
+import com.mpatric.mp3agic.UnsupportedTagException;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
@@ -116,7 +121,7 @@ public class LiLyPlayER extends JFrame {
         
         // table added with scroll pane
         
-        //table = new JTable(data, columns);
+//        table = new JTable(data, columns);
         
         table.setDropTarget(new MyDropTarget());        
         scrollPane = new JScrollPane(table);
@@ -129,7 +134,7 @@ public class LiLyPlayER extends JFrame {
         textField.setEditable(false);
         
         
-        // menu bar testing
+        // menu bar 
         
         var menuBar = new JMenuBar();
         var exitIcon = new ImageIcon("src/resources/exit.png");
@@ -141,8 +146,24 @@ public class LiLyPlayER extends JFrame {
         eMenuItem.setMnemonic(KeyEvent.VK_E);
         eMenuItem.setToolTipText("Exit application");
         eMenuItem.addActionListener((event) -> System.exit(0));
-
-        fileMenu.add(eMenuItem);
+        
+        var addMenuItem = new JMenuItem("Add Song", exitIcon);
+        addMenuItem.setMnemonic(KeyEvent.VK_A);
+        addMenuItem.setToolTipText("Add song to library");
+        addMenuItem.addActionListener((event) -> {
+        	JFileChooser jfc = new JFileChooser();
+        	jfc.showOpenDialog(null);
+        	File inFile = jfc.getSelectedFile();
+        	Repository repository = Repository.getInstance();
+        	try {
+				repository.addSong(inFile.toString());
+			} catch (UnsupportedTagException | InvalidDataException | SQLException | IOException ex) {
+				ex.printStackTrace();
+			}
+        });
+        
+        fileMenu.add(addMenuItem);
+        fileMenu.add(eMenuItem);        
         menuBar.add(fileMenu);
 
         setJMenuBar(menuBar);
@@ -206,17 +227,16 @@ public class LiLyPlayER extends JFrame {
         // right click menu testing
         
         final JPopupMenu popupMenu = new JPopupMenu();
-//        JMenuItem refreshTable = new JMenuItem("Refresh");
         JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(frame, "Right-click performed on table and choose DELETE");
+                JOptionPane.showMessageDialog(frame, (String)data[CurrentSelectedRow][4] + " has been DELETED");
                 String fp = (String)data[CurrentSelectedRow][4];
                 Repository repository = Repository.getInstance();
                 try {
-					repository.removeSong(fp);														//make this work
+					repository.removeSong(fp);														
 				} catch (SQLException ex) {
 					ex.printStackTrace();
 				}
@@ -279,6 +299,7 @@ public class LiLyPlayER extends JFrame {
                 	Repository repository = Repository.getInstance();
                 	repository.addSong(o.toString());
                 	}
+                refreshTable();
                 }
             catch (Exception ex){
                 ex.printStackTrace();
@@ -297,8 +318,6 @@ public class LiLyPlayER extends JFrame {
         table.invalidate();
         table = new JTable(data, columns);
     }
-    
-    
     
     
     class ButtonListener implements ActionListener {

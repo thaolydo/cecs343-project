@@ -74,23 +74,6 @@ public class Repository {
         return repository;
     }
 
-    /**
-     * This method is to retrieve all records in the WritingGroup table.
-     * 
-     * @return all records in the WritingGroup table.
-     */
-    public List<String> getAllPersonNames() {
-        List<String> result = new ArrayList<>();
-        try (Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery(GET_PERSON_QUERY)) {
-            while (rs.next()) {
-                result.add(rs.getString("name"));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Unable to execute the query " + GET_PERSON_QUERY, e);
-        }
-        return result;
-    }
     
     public List<List<String>> getSongs() throws SQLException {
     	statement = connection.createStatement();
