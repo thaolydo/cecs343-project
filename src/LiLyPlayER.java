@@ -16,6 +16,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ArrayList;
@@ -42,6 +44,7 @@ import javax.swing.table.TableColumn;
 //import javax.swing.table.TableModel;
 
 import com.mpatric.mp3agic.ID3v1;
+import com.mpatric.mp3agic.ID3v1Tag;
 import com.mpatric.mp3agic.Mp3File;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
@@ -150,10 +153,14 @@ public class LiLyPlayER extends JFrame {
         addMenuItem.setMnemonic(KeyEvent.VK_A);
         addMenuItem.setToolTipText("Add song to library");
         addMenuItem.addActionListener((event) -> {
-            JFileChooser jfc = new JFileChooser();
+            JFileChooser jfc = new JFileChooser("src/resources");
             jfc.showOpenDialog(null);
             File inFile = jfc.getSelectedFile();
-            addSong(inFile.toString());
+            Path currentDirectory = Paths.get(".").toAbsolutePath();
+            if (inFile != null) {
+                String relativeFileName = currentDirectory.relativize(inFile.toPath().toAbsolutePath()).toString();
+                addSong(relativeFileName);
+            }
         });
 
         fileMenu.add(addMenuItem);
@@ -414,6 +421,7 @@ public class LiLyPlayER extends JFrame {
                 .build();
             
             repository.addSong(song);
+            System.out.printf("Successfully added the song %s\n", fileName);
         } catch (Exception e) {
             throw new RuntimeException("Unable to add the song " + fileName, e);
         }
