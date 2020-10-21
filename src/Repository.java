@@ -9,10 +9,17 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+<<<<<<< HEAD
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
 import com.mpatric.mp3agic.UnsupportedTagException;
+=======
+import com.mpatric.mp3agic.InvalidDataException;
+import com.mpatric.mp3agic.UnsupportedTagException;
+
+import models.Song;
+>>>>>>> refs/heads/master_NB
 
 
 /**
@@ -22,7 +29,6 @@ public class Repository {
     private static volatile Repository repository;
     
     private Connection connection;
-    Statement statement;
     
     private static final String ENDPOINT = "project-1.cdrsstcipmfu.us-east-1.rds.amazonaws.com";
     private static final String DB_NAME = "project1";
@@ -31,8 +37,11 @@ public class Repository {
     private static final String DB_PASSWD = "Test1234";
     private static final String SCHEMA_NAME = "APP";
 
-    // Prepared statement string
-    private static final String GET_PERSON_QUERY = "SELECT * FROM person";
+    // Statement string
+    private static final String GET_SONGS_QUERY = "SELECT * FROM songs";
+    private static final String INSERT_SONG_STATEMENT =
+        "INSERT INTO songs(Artist, Title, Album, Location, Year) VALUES (?,?,?,?,?)";
+    private static final String DELETE_SONG_STATEMENT = "Delete FROM songs WHERE Location = ?";
 
 
     /** Private default constructor for singleton pattern */
@@ -73,6 +82,7 @@ public class Repository {
         }
         return repository;
     }
+<<<<<<< HEAD
 
     
     public List<List<String>> getSongs() throws SQLException {
@@ -92,8 +102,31 @@ public class Repository {
     		}    		
     	}
     	return result;
+=======
+    
+    public List<Song> getAllSongs() {
+		List<Song> result = new ArrayList<>();
+        try (Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery(GET_SONGS_QUERY)) {
+            while (rs.next()) {
+                Song song = Song.builder()
+                    .title(rs.getString("Title"))
+                    .artist(rs.getString("Artist"))
+                    .album(rs.getString("Album"))
+                    .fileLocation(rs.getString("Location"))
+                    .year(rs.getInt("Year"))
+                    .build();
+
+                result.add(song);
+            }
+            return result;
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + GET_SONGS_QUERY, e);
+        }
+>>>>>>> refs/heads/master_NB
     }
 
+<<<<<<< HEAD
     
     public void addSong(String fn) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
         String artist = new String();
@@ -135,9 +168,22 @@ public class Repository {
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
+=======
+    public void addSong(Song song) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
+        try (PreparedStatement statement = connection.prepareStatement(INSERT_SONG_STATEMENT)) {
+            statement.setString(1, song.artist());
+            statement.setString(2, song.title());
+            statement.setString(3, song.album());
+            statement.setString(4, song.fileLocation());
+            statement.setInt(5, song.year());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + INSERT_SONG_STATEMENT, e);
+>>>>>>> refs/heads/master_NB
         }
     }
     
+<<<<<<< HEAD
     public void removeSong(String fn) throws SQLException {
         
         try { 
@@ -152,7 +198,16 @@ public class Repository {
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
+=======
+    public void removeSong(String fileLocation) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(DELETE_SONG_STATEMENT)) {
+            statement.setString(1, fileLocation);
+            statement.executeUpdate();
+        }  catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + DELETE_SONG_STATEMENT);
+>>>>>>> refs/heads/master_NB
         }
+
     }
 
 }
