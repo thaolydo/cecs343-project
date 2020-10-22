@@ -32,7 +32,7 @@ public class Repository {
     // Statement string
     private static final String GET_SONGS_QUERY = "SELECT * FROM songs";
     private static final String INSERT_SONG_STATEMENT =
-        "INSERT INTO songs(Artist, Title, Album, Location, Year) VALUES (?,?,?,?,?)";
+        "INSERT INTO songs(Artist, Title, Album, Genre, Comment, Location, Year) VALUES (?,?,?,?,?,?,?)";
     private static final String DELETE_SONG_STATEMENT = "Delete FROM songs WHERE Location = ?";
 
 
@@ -84,8 +84,11 @@ public class Repository {
                     .title(rs.getString("Title"))
                     .artist(rs.getString("Artist"))
                     .album(rs.getString("Album"))
+                    .genreDesc(rs.getString("Genre"))
+                    .comment(rs.getString("Comment"))
                     .fileLocation(rs.getString("Location"))
                     .year(rs.getInt("Year"))
+                    
                     .build();
 
                 result.add(song);
@@ -101,8 +104,10 @@ public class Repository {
             statement.setString(1, song.artist());
             statement.setString(2, song.title());
             statement.setString(3, song.album());
-            statement.setString(4, song.fileLocation());
-            statement.setInt(5, song.year());
+            statement.setString(4, song.genreDesc());
+            statement.setString(5, song.comment());
+            statement.setString(6, song.fileLocation());
+            statement.setInt(7, song.year());
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Unable to execute the query " + INSERT_SONG_STATEMENT, e);
