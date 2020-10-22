@@ -1,4 +1,3 @@
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,17 +8,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-<<<<<<< HEAD
-import com.mpatric.mp3agic.ID3v1;
-import com.mpatric.mp3agic.InvalidDataException;
-import com.mpatric.mp3agic.Mp3File;
-import com.mpatric.mp3agic.UnsupportedTagException;
-=======
 import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.UnsupportedTagException;
 
 import models.Song;
->>>>>>> refs/heads/master_NB
 
 
 /**
@@ -82,27 +74,6 @@ public class Repository {
         }
         return repository;
     }
-<<<<<<< HEAD
-
-    
-    public List<List<String>> getSongs() throws SQLException {
-    	statement = connection.createStatement();
-		List<List<String>> result = new ArrayList<>();
-
-    	
-    	if(statement.execute("SELECT * FROM songs")) {
-    		ResultSet rs = statement.getResultSet();
-    		while(rs.next()) {
-    			List<String> thisResult = new ArrayList<>();
-    			
-    			for (int i = 0; i < 5; i++) {
-    			    thisResult.add(rs.getString(i + 1));
-    			   }
-    			   result.add(thisResult);
-    		}    		
-    	}
-    	return result;
-=======
     
     public List<Song> getAllSongs() {
 		List<Song> result = new ArrayList<>();
@@ -123,52 +94,8 @@ public class Repository {
         } catch (SQLException e) {
             throw new RuntimeException("Unable to execute the query " + GET_SONGS_QUERY, e);
         }
->>>>>>> refs/heads/master_NB
     }
 
-<<<<<<< HEAD
-    
-    public void addSong(String fn) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
-        String artist = new String();
-        String title = new String();
-        String album = new String();
-        String year = new String();
-        //String = genre;
-        String songID = fn;
-        
-        Mp3File mp3file = new Mp3File(fn.toString());
-    	if (mp3file.hasId3v1Tag()) {
-    		System.out.println(fn.toString());
-    		ID3v1 id3v1Tag = mp3file.getId3v1Tag();
-    		System.out.println("Artist: " + id3v1Tag.getArtist());
-    		artist = id3v1Tag.getArtist();
-    		System.out.println("Title: " + id3v1Tag.getTitle());
-    		title = id3v1Tag.getTitle();
-    		System.out.println("Album: " + id3v1Tag.getAlbum());
-    		album = id3v1Tag.getAlbum();
-    		System.out.println("Year: " + id3v1Tag.getYear());
-    		year = id3v1Tag.getYear();
-    		//System.out.println("Genre: " + id3v1Tag.getGenre() + " (" + id3v1Tag.getGenreDescription() + ")");
-    		//genre = id3v1Tag.getGenre();
-    	}
-        
-        try {
-            String sql = "INSERT INTO songs(Artist,Title,Album,Year,SongID)" + "VALUES (?,?,?,?,?)";
-            PreparedStatement statement = connection.prepareStatement(sql);
- 
-            statement.setString(1, artist);
-            statement.setString(2, title);
-            statement.setString(3, album);
-            statement.setString(4, year);
-            statement.setString(5, songID);
- 
-            int row = statement.executeUpdate();
-            if (row > 0) {
-                System.out.println("A Song was added to the library.");
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-=======
     public void addSong(Song song) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
         try (PreparedStatement statement = connection.prepareStatement(INSERT_SONG_STATEMENT)) {
             statement.setString(1, song.artist());
@@ -179,33 +106,15 @@ public class Repository {
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Unable to execute the query " + INSERT_SONG_STATEMENT, e);
->>>>>>> refs/heads/master_NB
         }
     }
     
-<<<<<<< HEAD
-    public void removeSong(String fn) throws SQLException {
-        
-        try { 
-            String sql = "Delete FROM songs WHERE SongID = ?";
-            PreparedStatement statement = connection.prepareStatement(sql);
- 
-            statement.setString(1, fn);
- 
-            int row = statement.executeUpdate();
-            if (row > 0) {
-                System.out.println("A Song was deleted the library.");
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-=======
     public void removeSong(String fileLocation) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(DELETE_SONG_STATEMENT)) {
             statement.setString(1, fileLocation);
             statement.executeUpdate();
         }  catch (SQLException e) {
             throw new RuntimeException("Unable to execute the query " + DELETE_SONG_STATEMENT);
->>>>>>> refs/heads/master_NB
         }
 
     }
