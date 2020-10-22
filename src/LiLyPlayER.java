@@ -200,21 +200,7 @@ public class LiLyPlayER extends JFrame {
         // right click pop up menu testing
 
         final JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem addItemPUM = new JMenuItem("Add song");
-        addItemPUM.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-            	jfc.showOpenDialog(null);
-                File inFile = jfc.getSelectedFile();
-                Path currentDirectory = Paths.get(".").toAbsolutePath();
-                if (inFile != null) {
-                    String relativeFileName = currentDirectory.relativize(inFile.toPath().toAbsolutePath()).toString();
-                    addSong(relativeFileName);
-                }
-                JOptionPane.showMessageDialog(frame, inFile + " has been ADDED to library");
-            }
-        });
-        
+        JMenuItem PUMaddItem = new JMenuItem("Add song");      
         JMenuItem deleteItemPUM = new JMenuItem("Delete");
         deleteItemPUM.addActionListener(new ActionListener() {
             @Override
@@ -230,8 +216,23 @@ public class LiLyPlayER extends JFrame {
             }
         });
         
-        popupMenu.add(addItemPUM);
-        popupMenu.add(deleteItemPUM);
+        JMenuItem PUMdeleteItem = new JMenuItem("Delete");
+        PUMdeleteItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 6) + " has been DELETED");
+                String fp = (String) tableModel.getValueAt(currentSelectedRow, 6);
+                try {
+                    repository.removeSong(fp);
+                    tableModel.removeRow(currentSelectedRow);
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        
+        popupMenu.add(PUMaddItem);
+        popupMenu.add(PUMdeleteItem);
         table.setComponentPopupMenu(popupMenu);
         
         /*
