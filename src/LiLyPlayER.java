@@ -126,7 +126,7 @@ public class LiLyPlayER extends JFrame {
 
         JMenuItem eMenuItem = new JMenuItem("Exit", exitIcon);
         eMenuItem.setMnemonic(KeyEvent.VK_E);
-        eMenuItem.setToolTipText("Exit application");
+        eMenuItem.setToolTipText("Daddy");
         eMenuItem.addActionListener((event) -> System.exit(0));
 
         JMenuItem addMenuItem = new JMenuItem("Add Song");
@@ -200,7 +200,21 @@ public class LiLyPlayER extends JFrame {
         // right click pop up menu testing
 
         final JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem PUMaddItem = new JMenuItem("Add song");      
+        JMenuItem addItemPUM = new JMenuItem("Add song");   
+        addItemPUM.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	jfc.showOpenDialog(null);
+                File inFile = jfc.getSelectedFile();
+                Path currentDirectory = Paths.get(".").toAbsolutePath();
+                if (inFile != null) {
+                    String relativeFileName = currentDirectory.relativize(inFile.toPath().toAbsolutePath()).toString();
+                    addSong(relativeFileName);
+                }
+                JOptionPane.showMessageDialog(frame, inFile + " has been ADDED to library");
+            }
+        });
+        
         JMenuItem deleteItemPUM = new JMenuItem("Delete");
         deleteItemPUM.addActionListener(new ActionListener() {
             @Override
@@ -216,23 +230,8 @@ public class LiLyPlayER extends JFrame {
             }
         });
         
-        JMenuItem PUMdeleteItem = new JMenuItem("Delete");
-        PUMdeleteItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-            	JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 6) + " has been DELETED");
-                String fp = (String) tableModel.getValueAt(currentSelectedRow, 6);
-                try {
-                    repository.removeSong(fp);
-                    tableModel.removeRow(currentSelectedRow);
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
-        });
-        
-        popupMenu.add(PUMaddItem);
-        popupMenu.add(PUMdeleteItem);
+        popupMenu.add(addItemPUM);
+        popupMenu.add(deleteItemPUM);
         table.setComponentPopupMenu(popupMenu);
         
         /*
@@ -246,30 +245,30 @@ public class LiLyPlayER extends JFrame {
         c.anchor = GridBagConstraints.PAGE_START;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridx = 0;
-        c.gridy = 0;
+        c.gridy = 5;
         main.add(prev, c);
         c.gridx = 1;
-        c.gridy = 0;
+        c.gridy = 5;
         main.add(play, c);
         c.gridx = 2;
-        c.gridy = 0;
+        c.gridy = 5;
         main.add(pause, c);
         c.gridx = 3;
-        c.gridy = 0;
+        c.gridy = 5;
         main.add(stop, c);
         c.gridx = 4;
-        c.gridy = 0;
+        c.gridy = 5;
         main.add(next, c);
-        c.gridx = 5;
-        c.gridy = 0;
-        c.weightx = 3.0;
-        main.add(textField, c);
+//        c.gridx = 1;
+//        c.gridy = 4;
+//        c.weightx = 5.0;
+//        main.add(textField, c);
         c.ipady = 40;
         c.weightx = 1.0;
         c.weighty = 1.0;
         c.gridwidth = 50;
         c.gridx = 0;
-        c.gridy = 3;
+        c.gridy = 1;
         c.fill = GridBagConstraints.BOTH;
         main.add(scrollPane, c);
         main.revalidate();
@@ -399,6 +398,7 @@ public class LiLyPlayER extends JFrame {
                     currentSelectedRow++;
                 }
                 url = (String) tableModel.getValueAt(currentSelectedRow, 6);
+                table.setRowSelectionInterval(currentSelectedRow, currentSelectedRow);
                 try {
                     player.stop();
                     player.open(new File(url));
@@ -418,6 +418,7 @@ public class LiLyPlayER extends JFrame {
                     currentSelectedRow--;
                 }
                 url = (String) tableModel.getValueAt(currentSelectedRow, 6);
+                table.setRowSelectionInterval(currentSelectedRow, currentSelectedRow);
                 try {
                     player.stop();
                     player.open(new File(url));
