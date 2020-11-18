@@ -11,6 +11,7 @@ import java.util.List;
 import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.UnsupportedTagException;
 
+import models.Playlist;
 import models.Song;
 
 
@@ -30,11 +31,17 @@ public class Repository {
     private static final String SCHEMA_NAME = "APP";
 
     // Statement string
-    private static final String GET_SONGS_QUERY = "SELECT * FROM songs";
+    private static final String GET_SONGS_QUERY = "SELECT * FROM Songs";
+    private static final String GET_PLAYLISTS_QUERY = "SELECT * FROM Playlists";
+    private static final String GET_SONGS_IN_PLAYLIST_QUERY = "SELECT Songs.* FROM SongPlaylistAssociation NATURAL JOIN Songs WHERE PlaylistName = ?";
     private static final String INSERT_SONG_STATEMENT =
         "INSERT INTO songs(Artist, Title, Album, Location, Year) VALUES (?,?,?,?,?)";
-    private static final String DELETE_SONG_STATEMENT = "Delete FROM songs WHERE Location = ?";
-
+    private static final String INSERT_SONG_TO_PLAYLIST_STATEMENT =
+        "INSERT INTO SongPlaylistAssociation(Location, PlaylistName) VALUES (?,?)";
+    private static final String INSERT_PLAYLIST_STATEMENT =
+        "INSERT INTO Playlists(PlaylistName) VALUES (?)";
+    private static final String DELETE_SONG_STATEMENT = "Delete FROM Songs WHERE Location = ?";
+    private static final String DELETE_PLAYLIST_STATEMENT = "Delete FROM Playlists WHERE PlaylistName = ?";
 
     /** Private default constructor for singleton pattern */
     private Repository() {
@@ -95,6 +102,29 @@ public class Repository {
             throw new RuntimeException("Unable to execute the query " + GET_SONGS_QUERY, e);
         }
     }
+    
+    public List<Song> getSongsFromPlaylist(String playlistName) {
+		List<Song> result = new ArrayList<>();
+        try (PreparedStatement statement = connection.prepareStatement(GET_SONGS_IN_PLAYLIST_QUERY)) {
+            statement.setString(1, playlistName);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                Song song = Song.builder()
+                    .title(rs.getString("Title"))
+                    .artist(rs.getString("Artist"))
+                    .album(rs.getString("Album"))
+                    .fileLocation(rs.getString("Location"))
+                    .year(rs.getInt("Year"))
+                    .build();
+
+                result.add(song);
+            }
+            rs.close();
+            return result;
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + GET_SONGS_IN_PLAYLIST_QUERY, e);
+        }
+    }
 
     public void addSong(Song song) throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
         try (PreparedStatement statement = connection.prepareStatement(INSERT_SONG_STATEMENT)) {
@@ -108,15 +138,60 @@ public class Repository {
             throw new RuntimeException("Unable to execute the query " + INSERT_SONG_STATEMENT, e);
         }
     }
+
+    public void addSongToPlaylist(Song song, String playlistName)
+        throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
+        try (PreparedStatement statement = connection.prepareStatement(INSERT_SONG_TO_PLAYLIST_STATEMENT)) {
+            statement.setString(1, song.fileLocation());
+            statement.setString(2, playlistName);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + INSERT_SONG_TO_PLAYLIST_STATEMENT, e);
+        }
+    }
     
     public void removeSong(String fileLocation) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(DELETE_SONG_STATEMENT)) {
             statement.setString(1, fileLocation);
             statement.executeUpdate();
         }  catch (SQLException e) {
-            throw new RuntimeException("Unable to execute the query " + DELETE_SONG_STATEMENT);
+            throw new RuntimeException("Unable to execute the query " + DELETE_SONG_STATEMENT, e);
         }
+    }
 
+    public List<Playlist> getAllPlaylists() {
+		List<Playlist> result = new ArrayList<>();
+        try (Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery(GET_PLAYLISTS_QUERY)) {
+            while (rs.next()) {
+                Playlist playlist = Playlist.builder()
+                    .playlistName(rs.getString("PlaylistName"))
+                    .build();
+
+                result.add(playlist);
+            }
+            return result;
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + GET_PLAYLISTS_QUERY, e);
+        }
+    }
+    
+    public void addPlaylist(String playlistName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(INSERT_PLAYLIST_STATEMENT)) {
+            statement.setString(1, playlistName);
+            statement.executeUpdate();
+        }  catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + INSERT_PLAYLIST_STATEMENT, e);
+        }
+    }
+
+    public void removePlaylist(String playlistName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(DELETE_PLAYLIST_STATEMENT)) {
+            statement.setString(1, playlistName);
+            statement.executeUpdate();
+        }  catch (SQLException e) {
+            throw new RuntimeException("Unable to execute the query " + DELETE_PLAYLIST_STATEMENT, e);
+        }
     }
 
 }
