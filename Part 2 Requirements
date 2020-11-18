@@ -1,0 +1,35 @@
+create a panel on the left or right side of the songs library in the GUI that is approximately 1/10 to 1/8 the width of the library table
+
+in the new panel place two components
+	a tree with only one branch called "Library". Selecting (mouse) this branch shows the songs library in the main library table. This branch cannot expand or collapse and has no children.
+	a collapsible tree with root name "Playlist". Selecting this branch (double clicking) collapses and expands the tree alternatively. This tree expands to at most one level. 
+		That is, root can have children, but the children cannot. The children of the root node are playlists.
+		
+allow users to create playlist by selecting "Create Playlist" from the File menu. Allow users to name it. 
+	Create it, then automatically select it in the tree and open it in the main library table component. 
+	The new playlist will be empty. All new playlist must originate in the main library window table. 
+	Playlist names and contents must be in the relational database and accessed via SQL. 
+	Playlist must show all six mp3v1 tags as should the library table. 
+	
+allow users to right click on a playlist. This action shows a popup context menu with "Open in New Window" (and Delete Playlist). 
+	Selecting this causes the playlist (empty or not) to be moved to a new window (complete with audio controls and menu but NO playlist or library trees) 
+	AND the main library table to refilled with the song library (complete with audio controls and library and playlist trees)
+	
+allow users to add songs from the library to an exiting playlist in the following three ways:
+	select a song from the library and right click. A context menu (the same one from Iteration 1) has a new entry called "Add to playlist".
+		Mousing over this entry causes a list of all playlists to appear in a sub-menu. Select the playlist to add the song. 
+	
+	Drag and drop from outside of myTunes (as done in Iteration 1) on to the playlist in either of the following ways:
+		if the playlist is in the main library window, simply drag song files into the playlist
+		if the playlist is opened in a separate window, simply drag the songs into the playlist 
+		in either event, if the song(s) being dragged onto a playlist is not inthe library, add it to the library (without asking the user) before putting it in the playlist. 
+		In no event shall a song be in a playlist and not be in the library
+		
+	Drag and drop from inside of myTunes. This feature is only possible whena playlist is opened in a separate window and is initiated only from the library. 
+		Playlist to playlist transfers are not required, but are permitted if your team wishes to implement it. One or more files may be dragged. 
+	
+Right click on a playlist tree playlist show a popup context menu with "Delete Playlist".
+ 
+Selecting this deletes the highlighted playlist from the library (after confirmation), deletes its entry from the playlist-song relational table and redraw the playlist tree. 
+
+Volume slider 

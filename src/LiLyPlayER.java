@@ -36,8 +36,10 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.JTree;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
+import javax.swing.tree.DefaultMutableTreeNode;
 
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.Mp3File;
@@ -238,41 +240,68 @@ public class LiLyPlayER extends JFrame {
          *  add keyboard delete?
          */
         
+        //tree stuff
+
+        JTree tree;
+        
+
+        
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("root");
+        DefaultMutableTreeNode lib = new DefaultMutableTreeNode("Library");
+        DefaultMutableTreeNode pl = new DefaultMutableTreeNode("PlayList");
+        DefaultMutableTreeNode testPLChild = new DefaultMutableTreeNode("test child");
+        root.add(lib);
+        root.add(pl);
+        tree = new JTree(root);
+        tree.setRootVisible(false);
+
+        pl.add(testPLChild);
+        
+        
         // layout stuff
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setTitle("JTree Example");       
+        this.pack();
+        this.setVisible(true);
 
         main.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.PAGE_START;
         c.fill = GridBagConstraints.HORIZONTAL;
-        c.gridx = 0;
-        c.gridy = 5;
-        main.add(prev, c);
         c.gridx = 1;
-        c.gridy = 5;
-        main.add(play, c);
+        c.gridy = 1;
+        main.add(prev, c);
         c.gridx = 2;
-        c.gridy = 5;
-        main.add(pause, c);
+        c.gridy = 1;
+        main.add(play, c);
         c.gridx = 3;
-        c.gridy = 5;
-        main.add(stop, c);
+        c.gridy = 1;
+        main.add(pause, c);
         c.gridx = 4;
-        c.gridy = 5;
+        c.gridy = 1;
+        main.add(stop, c);
+        c.gridx = 5;
+        c.gridy = 1;
         main.add(next, c);
-//        c.gridx = 1;
-//        c.gridy = 4;
-//        c.weightx = 5.0;
-//        main.add(textField, c);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.weightx = 0.2;
+        main.add(tree, c);
         c.ipady = 40;
         c.weightx = 1.0;
         c.weighty = 1.0;
         c.gridwidth = 50;
-        c.gridx = 0;
-        c.gridy = 1;
+        c.gridx = 1;
+        c.gridy = 0;
         c.fill = GridBagConstraints.BOTH;
         main.add(scrollPane, c);
-        main.revalidate();
-        scrollPane.revalidate();
+//        main.revalidate();
+//        scrollPane.revalidate();
+        
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setTitle("JTree Example");       
+        this.pack();
+        this.setVisible(true);
 
         // added mouse listener
 
