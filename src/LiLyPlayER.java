@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-
+import javax.swing.event.*;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -34,18 +34,21 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.Mp3File;
 
 import javazoom.jlgui.basicplayer.BasicPlayer;
 import javazoom.jlgui.basicplayer.BasicPlayerException;
+import models.Playlist;
 import models.Song;
 
 @SuppressWarnings("serial")
@@ -71,8 +74,17 @@ public class LiLyPlayER extends JFrame {
     JScrollPane scrollPane;
     int currentSelectedRow;
     
+    JTree tree;
+    DefaultMutableTreeNode root;
+    DefaultMutableTreeNode pl;
+    JMenuItem addPLItemPUM;
+    
+    JSlider volume;
+    JLabel volLabel;
+    
     String[] columns = { "Artist", "Song Title", "Album", "Year", "Genre", "Comment", "File Location" }; // column names
     List<Song> tempAL; // Temporarily stores database information
+    List<Playlist> tempAL_PL;
     JFileChooser jfc;
 
     private static final Repository repository = Repository.getInstance();
@@ -102,11 +114,30 @@ public class LiLyPlayER extends JFrame {
         bl5 = new ButtonListener();
         prev = new JButton("Prev");
         prev.addActionListener(bl5);
+        
+        addPLItemPUM = new JMenu("Add Song to Playlist");
+        
+        volume = new JSlider();
+        volLabel = new JLabel("   Volume: ");
+        volume.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                JSlider source = (JSlider) e.getSource();
+                if (source.getValueIsAdjusting()) {
+                    double vol = (int) source.getValue();
+                    try {
+                        player.setGain(vol/100.0);
+                    } catch (Exception ex) {
+                    }
+                }
+            }
+        });
 
         // initialize and populate table with data from database
         
         table = new JTable();
         initTable();
+        initTree();
         table.setDropTarget(new MyDropTarget());
         
         scrollPane = new JScrollPane(table);
@@ -115,8 +146,6 @@ public class LiLyPlayER extends JFrame {
         frame.add(scrollPane);
         frame.setSize(400, 400);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        textField = new JTextField(500);
-        textField.setEditable(false);
 
         // menu bar
 
@@ -186,9 +215,27 @@ public class LiLyPlayER extends JFrame {
                 }
             }
         });
+        
+        JMenuItem addPLMenuItem = new JMenuItem("Add a Playlist");
+        addPLMenuItem.setMnemonic(KeyEvent.VK_J);
+        addPLMenuItem.setToolTipText("Add a Playlist");
+        addPLMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	String s = (String)JOptionPane.showInputDialog(main, "Enter name of playlist:\n" , "Add a Playlist", JOptionPane.PLAIN_MESSAGE);
+            	try {
+            		addPlaylist(s);
+            		addPLItemPUM.add(new JMenuItem(s));
+				} catch (SQLException e1) {
+					e1.printStackTrace();
+				}
+            	
+            }
+        });
 
         fileMenu.add(playMenuItem);
         fileMenu.add(addMenuItem);
+        fileMenu.add(addPLMenuItem);
         fileMenu.add(deleteMenuItem);
         fileMenu.add(eMenuItem);        
         menuBar.add(fileMenu);
@@ -232,35 +279,111 @@ public class LiLyPlayER extends JFrame {
             }
         });
         
+        
+        
         popupMenu.add(addItemPUM);
         popupMenu.add(deleteItemPUM);
+        popupMenu.add(addPLItemPUM);
         table.setComponentPopupMenu(popupMenu);
         
-        /*
-         *  add keyboard delete?
-         */
-        
-        //tree stuff
+        final JPopupMenu PLpopupMenu = new JPopupMenu();
+        JMenuItem newWindowItemPUM = new JMenuItem("Open In New Window");   
+        newWindowItemPUM.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JPanel PLPanel = new JPanel();
+                JTable PLtable = new JTable();
+                JFrame PLFrame = new JFrame();
+                JScrollPane PLScrollpane = new JScrollPane();
+                tableModel = new DefaultTableModel(tempAL_PL, columns);                 // fill table with songs for specific playlist
+                table = new JTable(tableModel);
 
-        JTree tree;
-        
-        DefaultMutableTreeNode root = new DefaultMutableTreeNode("root");
-        DefaultMutableTreeNode lib = new DefaultMutableTreeNode("Library");
-        DefaultMutableTreeNode pl = new DefaultMutableTreeNode("PlayList");
-        DefaultMutableTreeNode testPLChild = new DefaultMutableTreeNode("test child");
-        root.add(lib);
-        root.add(pl);
-        tree = new JTree(root);
-        tree.setRootVisible(false);
+                
+                table.setDropTarget(new MyDropTarget()); // need to add new drag and drop code specific to playlist
+                
+                JScrollPane PLScrollPane = new JScrollPane(PLtable);
+                PLFrame.add(PLScrollPane);
+                PLFrame.setSize(1000, 575);
+                PLFrame.setVisible(true);
+                
+                TableColumn column = PLtable.getColumnModel().getColumn(0);
+                column.setPreferredWidth(200);
+                column = PLtable.getColumnModel().getColumn(1);
+                column.setPreferredWidth(100);
+                
+                PLPanel.setLayout(new GridBagLayout());
+                GridBagConstraints c = new GridBagConstraints();
+                c.anchor = GridBagConstraints.PAGE_START;
+                c.fill = GridBagConstraints.HORIZONTAL;
+                c.gridx = 1;
+                c.gridy = 1;
+                PLPanel.add(prev, c);
+                c.gridx = 2;
+                c.gridy = 1;
+                PLPanel.add(play, c);
+                c.gridx = 3;
+                c.gridy = 1;
+                PLPanel.add(pause, c);
+                c.gridx = 4;
+                c.gridy = 1;
+                PLPanel.add(stop, c);
+                c.gridx = 5;
+                c.gridy = 1;
+                PLPanel.add(next, c);
+                c.gridx = 6;
+                c.gridy = 1;
+                PLPanel.add(volLabel, c);
+                c.gridx = 7;
+                c.gridy = 1;
+                PLPanel.add(volume, c);
+                c.ipady = 40;
+                c.weightx = 1.0;
+                c.weighty = 1.0;
+                c.gridwidth = 50;
+                c.gridx = 1;
+                c.gridy = 0;
+                c.fill = GridBagConstraints.BOTH;
+                PLPanel.add(PLScrollPane, c);
 
-        pl.add(testPLChild);
+            }
+        });
+        
+        JMenuItem deletePLItemPUM = new JMenuItem("Delete Playlist");   
+        deletePLItemPUM.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+                Object nodeInfo = node.getUserObject();
+                DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
+                model.removeNodeFromParent(node);
+                //repository.removePlaylist(nodeInfo);
+
+            }
+        });
+        
+        PLpopupMenu.add(newWindowItemPUM);
+        PLpopupMenu.add(deletePLItemPUM);
+
+
+        tree.setComponentPopupMenu(PLpopupMenu);
+        
+        volume = new JSlider();
+        volLabel = new JLabel("   Volume: ");
+        volume.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                JSlider source = (JSlider) e.getSource();
+                if (source.getValueIsAdjusting()) {
+                    double vol = (int) source.getValue();
+                    try {
+                        player.setGain(vol/100.0);
+                    } catch (Exception ex) {
+                    }
+                }
+            }
+        });
         
         
-        // layout stuff
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setTitle("JTree Example");       
-        this.pack();
-        this.setVisible(true);
 
         main.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
@@ -281,6 +404,12 @@ public class LiLyPlayER extends JFrame {
         c.gridx = 5;
         c.gridy = 1;
         main.add(next, c);
+        c.gridx = 6;
+        c.gridy = 1;
+        main.add(volLabel, c);
+        c.gridx = 7;
+        c.gridy = 1;
+        main.add(volume, c);
         c.gridx = 0;
         c.gridy = 0;
         c.weightx = 0.2;
@@ -294,10 +423,7 @@ public class LiLyPlayER extends JFrame {
         c.fill = GridBagConstraints.BOTH;
         main.add(scrollPane, c);
         
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setTitle("JTree Example");       
-        this.pack();
-        this.setVisible(true);
+
 
         // added mouse listener
 
@@ -360,8 +486,30 @@ public class LiLyPlayER extends JFrame {
         }
         tableModel = new DefaultTableModel(data, columns);
         table = new JTable(tableModel);
+        table.setDragEnabled(true);
     }
+    
+    void initTree() {
+    	tempAL_PL = repository.getAllPlaylists();
+        
+        root = new DefaultMutableTreeNode("root");
+        DefaultMutableTreeNode lib = new DefaultMutableTreeNode("Library");
+        pl = new DefaultMutableTreeNode("PlayList");
+        
+        root.add(lib);
+        root.add(pl);
+        
+        for (Playlist p : tempAL_PL) {
+        	pl.add(new DefaultMutableTreeNode(p.playlistName()));
+        	addPLItemPUM.add(new JMenuItem(p.playlistName()));
+        }
+        tree = new JTree(root);        
+        tree.setRootVisible(false);
+        this.pack();
+        this.setVisible(true);
 
+    }
+    
     /*
      * Action listener to handle the event of each respective button pressed
      */
@@ -491,6 +639,26 @@ public class LiLyPlayER extends JFrame {
         }
     }
     
+    void addPlaylist(String plName) throws SQLException {
+        System.out.printf("Adding Playlist: %s/n", plName);
+        repository.addPlaylist(plName);
+        System.out.printf("\nSuccessfully added the playlist %s\n", plName);
+        DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
+        DefaultMutableTreeNode pl = (DefaultMutableTreeNode) model.getChild(root, 1);
+        model.insertNodeInto(new DefaultMutableTreeNode(plName),pl,pl.getChildCount());
+
+    }
+    
+    void deletePlaylist(String plName) throws SQLException {
+        System.out.printf("Deleting Playlist: %s/n", plName);
+        repository.removePlaylist(plName);
+        System.out.printf("\nSuccessfully deleted the playlist %s\n", plName);
+        DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
+        DefaultMutableTreeNode pl = (DefaultMutableTreeNode) model.getChild(root, 1);
+        model.removeNodeFromParent(pl);
+
+    }
+    
     /*
      * stores the information of the song into an object array
      */
@@ -503,6 +671,12 @@ public class LiLyPlayER extends JFrame {
             song.genreDesc(),
             song.comment(),
             song.fileLocation()
+        };
+    }
+    
+    private Object[] playlistToNode(Playlist playlist) {
+        return new Object[] {
+            playlist.playlistName()
         };
     }
 }
