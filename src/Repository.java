@@ -30,10 +30,10 @@ public class Repository {
     private static final String SCHEMA_NAME = "APP";
 
     // Statement string
-    private static final String GET_SONGS_QUERY = "SELECT * FROM songs";
+    private static final String GET_SONGS_QUERY = "SELECT * FROM Songs";
     private static final String INSERT_SONG_STATEMENT =
-        "INSERT INTO songs(Artist, Title, Album, Genre, Comment, Location, Year) VALUES (?,?,?,?,?,?,?)";
-    private static final String DELETE_SONG_STATEMENT = "Delete FROM songs WHERE Location = ?";
+        "INSERT INTO Songs(Artist, Title, Album, Genre, Comment, Location, Year) VALUES (?,?,?,?,?,?,?)";
+    private static final String DELETE_SONG_STATEMENT = "Delete FROM Songs WHERE Location = ?";
 
 
     /** Private default constructor for singleton pattern */

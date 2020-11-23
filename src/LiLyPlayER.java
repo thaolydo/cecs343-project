@@ -244,8 +244,6 @@ public class LiLyPlayER extends JFrame {
 
         JTree tree;
         
-
-        
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("root");
         DefaultMutableTreeNode lib = new DefaultMutableTreeNode("Library");
         DefaultMutableTreeNode pl = new DefaultMutableTreeNode("PlayList");
@@ -295,8 +293,6 @@ public class LiLyPlayER extends JFrame {
         c.gridy = 0;
         c.fill = GridBagConstraints.BOTH;
         main.add(scrollPane, c);
-//        main.revalidate();
-//        scrollPane.revalidate();
         
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setTitle("JTree Example");       
