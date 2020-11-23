@@ -35,7 +35,7 @@ public class Repository {
     private static final String GET_PLAYLISTS_QUERY = "SELECT * FROM Playlists";
     private static final String GET_SONGS_IN_PLAYLIST_QUERY = "SELECT Songs.* FROM SongPlaylistAssociation NATURAL JOIN Songs WHERE PlaylistName = ?";
     private static final String INSERT_SONG_STATEMENT =
-        "INSERT INTO songs(Artist, Title, Album, Location, Year) VALUES (?,?,?,?,?)";
+        "INSERT INTO Songs(Artist, Title, Album, Genre, Comment, Location, Year, GenreInt) VALUES (?,?,?,?,?,?,?,?)";
     private static final String INSERT_SONG_TO_PLAYLIST_STATEMENT =
         "INSERT INTO SongPlaylistAssociation(Location, PlaylistName) VALUES (?,?)";
     private static final String INSERT_PLAYLIST_STATEMENT =
@@ -131,18 +131,24 @@ public class Repository {
             statement.setString(1, song.artist());
             statement.setString(2, song.title());
             statement.setString(3, song.album());
-            statement.setString(4, song.fileLocation());
-            statement.setInt(5, song.year());
+            statement.setString(4, song.genreDesc());
+            statement.setString(5, song.comment());
+            statement.setString(6, song.fileLocation());
+            statement.setInt(7, song.year());
+            statement.setInt(8, song.genre());
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Unable to execute the query " + INSERT_SONG_STATEMENT, e);
         }
     }
 
-    public void addSongToPlaylist(Song song, String playlistName)
-        throws SQLException, UnsupportedTagException, InvalidDataException, IOException {
+    public void addSongToPlaylist(Song song, String playlistName) {
+        addSongToPlaylist(song.fileLocation(), playlistName);  
+    }
+
+    public void addSongToPlaylist(String songLocation, String playlistName) {
         try (PreparedStatement statement = connection.prepareStatement(INSERT_SONG_TO_PLAYLIST_STATEMENT)) {
-            statement.setString(1, song.fileLocation());
+            statement.setString(1, songLocation);
             statement.setString(2, playlistName);
             statement.executeUpdate();
         } catch (SQLException e) {

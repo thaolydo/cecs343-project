@@ -14,5 +14,8 @@ public class Song {
     private final String artist;
     private final String album;
     private final String fileLocation;
+    private final String genreDesc;
+    private final String comment;
+    private final int genre;
     private final int year;
 }
