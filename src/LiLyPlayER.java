@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Vector;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -161,10 +162,8 @@ public class LiLyPlayER extends JFrame {
             initTable(repository.getSongsFromPlaylist(title));
         }
         
-
-        table.setDropTarget(new MyDropTarget());
-        
         scrollPane = new JScrollPane(table);
+        scrollPane.setDropTarget(new TableDropTarget(isPlaylistWindow ? title : null));
         main = new JPanel();
         frame = new JFrame();
         frame.add(scrollPane);
@@ -389,7 +388,8 @@ public class LiLyPlayER extends JFrame {
         this.setSize(1000, 575);
         this.add(main);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         this.pack();
         this.setVisible(true);
@@ -398,7 +398,13 @@ public class LiLyPlayER extends JFrame {
     /*
      *  Drag and Drop functionality
      */
-    class MyDropTarget extends DropTarget {
+    class TableDropTarget extends DropTarget {
+        private String playlistName;
+
+        public TableDropTarget(String playlistName) {
+            this.playlistName = playlistName;
+        }
+
         @SuppressWarnings("rawtypes")
         public void drop(DropTargetDropEvent evt) {
             try {
@@ -409,14 +415,34 @@ public class LiLyPlayER extends JFrame {
                 Path currentDirectory = Paths.get(".").toAbsolutePath();
                 for (Object o : result) {
                     String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
+
                     addSong(relativeFileName);
+
+                    // Add to playlist if playlist is currently selected
+                    DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
+                    if (selectedNode != null && selectedNode != playlistNode) {
+                        String playlistName = selectedNode.getUserObject().toString();
+                        System.out.printf("Adding song %s to the playlist %s\n", relativeFileName, playlistName);
+                        repository.addSongToPlaylist(relativeFileName, playlistName);
+                    }
+                    if (this.playlistName != null) {
+                        System.out.printf("Adding song %s to the playlist %s\n", relativeFileName, playlistName);
+                        repository.addSongToPlaylist(relativeFileName, this.playlistName);
+                    }
                 }
+                setTable(repository.getSongsFromPlaylist(this.playlistName));
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
     }
     
+    DefaultMutableTreeNode getSelectedPlaylistNode() {
+        if (playlistTree == null) {
+            return null;
+        }
+        return (DefaultMutableTreeNode) playlistTree.getLastSelectedPathComponent();
+    }
 
     /*
      * Function to initialize the table
@@ -528,7 +554,7 @@ public class LiLyPlayER extends JFrame {
     }
     
     void initPlaylistTree() {
-        playlistNode = new DefaultMutableTreeNode("PlayList");
+        playlistNode = new DefaultMutableTreeNode("Playlist");
         for (Playlist p : playlists) {
         	playlistNode.add(new DefaultMutableTreeNode(p.playlistName()));
         }
@@ -540,13 +566,13 @@ public class LiLyPlayER extends JFrame {
         // Add selection listener
         playlistTree.addTreeSelectionListener(new TreeSelectionListener() {
             public void valueChanged(TreeSelectionEvent e) {
-                libraryTree.clearSelection();
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) playlistTree.getLastSelectedPathComponent();
         
                 /* if nothing is selected */ 
-                if (node == null || "PlayList".equals(node.getUserObject().toString())) {
+                if (node == null || node == playlistNode) {
                     return;
                 }
+                libraryTree.clearSelection();
         
                 /* retrieve the node that was selected */ 
                 String playlistName = node.getUserObject().toString();
@@ -687,7 +713,11 @@ public class LiLyPlayER extends JFrame {
      * sorted databases' table
      */
     void addSong(String fileName) {
-        System.out.printf("Adding song: %s/n", fileName);
+        System.out.printf("Adding song: %s\n", fileName);
+        if (songExists(fileName)) {
+            System.out.printf("Song already exists.\n");
+            return;
+        }
 
         try {
             Mp3File mp3file = new Mp3File(fileName.toString());
@@ -705,13 +735,22 @@ public class LiLyPlayER extends JFrame {
                 .genreDesc(id3v1Tag.getGenreDescription())
                 .year(Integer.parseInt(id3v1Tag.getYear()))
                 .build();
-            
             repository.addSong(song);
             tableModel.addRow(songToTableRow(song));
             System.out.printf("Successfully added the song %s\n", fileName);
         } catch (Exception e) {
             throw new RuntimeException("Unable to add the song " + fileName, e);
         }
+    }
+
+    boolean songExists(String songLocation) {
+        for (Song song : repository.getAllSongs()) {
+            if (songLocation.equals(song.fileLocation())) {
+                return true;
+            }
+        }
+
+        return false;
     }
     
     void addPlaylist(String plName) throws SQLException {
@@ -729,11 +768,11 @@ public class LiLyPlayER extends JFrame {
     }
     
     void removePlaylist() throws SQLException {
-    	DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) playlistTree.getLastSelectedPathComponent();
+    	DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
         System.out.println(playlistTree.getLastSelectedPathComponent());
 
         String playlistName = selectedNode.getUserObject().toString();
-        System.out.printf("Deleting Playlist: %s/n", playlistName);
+        System.out.printf("Deleting Playlist: %s\n", playlistName);
         repository.removePlaylist(playlistName);
         System.out.printf("\nSuccessfully deleted the playlist %s\n", playlistName);
         playlistTreeModel.removeNodeFromParent(selectedNode);
