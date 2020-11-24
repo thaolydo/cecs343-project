@@ -92,7 +92,7 @@ public class LiLyPlayER extends JFrame {
 
     private static final Repository repository = Repository.getInstance();
 
-    public LiLyPlayER(String title, boolean isPlaylistWindow) {
+    public LiLyPlayER(String title, boolean isPlaylistWindow, int onCloseOperation) {
         player = new BasicPlayer();
         jfc = new JFileChooser("src/resources");
 
@@ -384,8 +384,7 @@ public class LiLyPlayER extends JFrame {
         this.setSize(1000, 575);
         this.add(main);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        // this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.setDefaultCloseOperation(onCloseOperation);
 
         this.pack();
         this.setVisible(true);
@@ -559,7 +558,7 @@ public class LiLyPlayER extends JFrame {
                 DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
                 if (selectedNode != null && selectedNode != playlistNode) {
                     String playlistName = selectedNode.getUserObject().toString();
-                    new LiLyPlayER(playlistName, true);
+                    new LiLyPlayER(playlistName, true, DISPOSE_ON_CLOSE);
                 }
             }
         });
