@@ -14,6 +14,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.Point;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -622,6 +623,35 @@ public class LiLyPlayER extends JFrame {
         PLpopupMenu.add(newWindowItemPUM);
         PLpopupMenu.add(removePLItemPUM);
         playlistTree.setComponentPopupMenu(PLpopupMenu);
+
+        // Add drag-n-drop functionality
+        playlistTree.setDropTarget(new DropTarget() {
+            public void drop(DropTargetDropEvent evt) {
+                try {
+                    evt.acceptDrop(DnDConstants.ACTION_COPY);
+                    List result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    Path currentDirectory = Paths.get(".").toAbsolutePath();
+                    for (Object o : result) {
+                        String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
+                        addSong(relativeFileName);
+
+                        Point loc = evt.getLocation();
+                        TreePath treePath = playlistTree.getPathForLocation(loc.x, loc.y);
+                        DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+
+                        if (selectedNode != null && selectedNode != playlistNode) {
+                            String playlistName = selectedNode.getUserObject().toString();
+                            System.out.printf("Adding song %s to the playlist %s\n", relativeFileName, playlistName);
+                            repository.addSongToPlaylist(relativeFileName, playlistName);
+                            playlistTree.setSelectionPath(treePath);
+                        }
+                        
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
     
     /*

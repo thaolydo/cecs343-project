@@ -152,6 +152,10 @@ public class Repository {
             statement.setString(2, playlistName);
             statement.executeUpdate();
         } catch (SQLException e) {
+            if (e.getMessage().contains("Duplicate")) {
+                System.out.println("Song already in the playlist");
+                return;
+            }
             throw new RuntimeException("Unable to execute the query " + INSERT_SONG_TO_PLAYLIST_STATEMENT, e);
         }
     }
