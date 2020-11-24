@@ -406,8 +406,10 @@ public class LiLyPlayER extends JFrame {
 
                 List result;
                 result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                Path currentDirectory = Paths.get(".").toAbsolutePath();
                 for (Object o : result) {
-                    addSong(o.toString());
+                    String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
+                    addSong(relativeFileName);
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -429,60 +431,60 @@ public class LiLyPlayER extends JFrame {
          *	NEW DRAG AND DROP. COOMMENT OUT TO RUN CODE 
          */
         
-        DefaultTreeModel model = (DefaultTreeModel)playlistTree.getModel();
-        playlistTree.setTransferHandler(new TransferHandler() {
-          public boolean canImport(TransferHandler.TransferSupport support) {
-            if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
-                !support.isDrop()) {
-              return false;
-            }
+        // DefaultTreeModel model = (DefaultTreeModel)playlistTree.getModel();
+        // playlistTree.setTransferHandler(new TransferHandler() {
+        //   public boolean canImport(TransferHandler.TransferSupport support) {
+        //     if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
+        //         !support.isDrop()) {
+        //       return false;
+        //     }
 
-            JTree.DropLocation dropLocation =
-              (JTree.DropLocation)support.getDropLocation();
+        //     JTree.DropLocation dropLocation =
+        //       (JTree.DropLocation)support.getDropLocation();
 
-            return dropLocation.getPath() != null;
-          }
+        //     return dropLocation.getPath() != null;
+        //   }
 
-          public boolean importData(TransferHandler.TransferSupport support) {
-            if (!canImport(support)) {
-              return false;
-            }
+        //   public boolean importData(TransferHandler.TransferSupport support) {
+        //     if (!canImport(support)) {
+        //       return false;
+        //     }
 
-            JTree.DropLocation dropLocation =
-              (JTree.DropLocation)support.getDropLocation();
+        //     JTree.DropLocation dropLocation =
+        //       (JTree.DropLocation)support.getDropLocation();
 
-            TreePath path = dropLocation.getPath();
+        //     TreePath path = dropLocation.getPath();
 
-            Transferable transferable = support.getTransferable();
+        //     Transferable transferable = support.getTransferable();
 
-            String transferData;
-            try {
-              transferData = (String)transferable.getTransferData(
-                DataFlavor.stringFlavor);
-            } catch (IOException e) {
-              return false;
-            } catch (UnsupportedFlavorException e) {
-              return false;
-            }
+        //     String transferData;
+        //     try {
+        //       transferData = (String)transferable.getTransferData(
+        //         DataFlavor.stringFlavor);
+        //     } catch (IOException e) {
+        //       return false;
+        //     } catch (UnsupportedFlavorException e) {
+        //       return false;
+        //     }
 
-            int childIndex = dropLocation.getChildIndex();
-            if (childIndex == -1) {
-              childIndex = model.getChildCount(path.getLastPathComponent());
-            }
+        //     int childIndex = dropLocation.getChildIndex();
+        //     if (childIndex == -1) {
+        //       childIndex = model.getChildCount(path.getLastPathComponent());
+        //     }
 
-            DefaultMutableTreeNode newNode = 
-              new DefaultMutableTreeNode(transferData);
-            DefaultMutableTreeNode parentNode =
-              (DefaultMutableTreeNode)path.getLastPathComponent();
-            model.insertNodeInto(newNode, parentNode, childIndex);
+        //     DefaultMutableTreeNode newNode = 
+        //       new DefaultMutableTreeNode(transferData);
+        //     DefaultMutableTreeNode parentNode =
+        //       (DefaultMutableTreeNode)path.getLastPathComponent();
+        //     model.insertNodeInto(newNode, parentNode, childIndex);
 
-            TreePath newPath = path.pathByAddingChild(newNode);
-            playlistTree.makeVisible(newPath);
-            playlistTree.scrollRectToVisible(playlistTree.getPathBounds(newPath));
+        //     TreePath newPath = path.pathByAddingChild(newNode);
+        //     playlistTree.makeVisible(newPath);
+        //     playlistTree.scrollRectToVisible(playlistTree.getPathBounds(newPath));
 
-            return true;
-          }
-        });
+        //     return true;
+        //   }
+        // });
         
         /*
          * 	COMMENT OUT UP TO HERE.
@@ -733,9 +735,10 @@ public class LiLyPlayER extends JFrame {
         String playlistName = selectedNode.getUserObject().toString();
         System.out.printf("Deleting Playlist: %s/n", playlistName);
         repository.removePlaylist(playlistName);
-        System.out.printf("\nSuccessfully deleted the playlist %s", playlistName);
+        System.out.printf("\nSuccessfully deleted the playlist %s\n", playlistName);
         playlistTreeModel.removeNodeFromParent(selectedNode);
 
+        // TODO: remove the playlist from addSongToPlaylistMenuItem
     }
     
     /*
