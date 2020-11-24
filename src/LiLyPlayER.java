@@ -396,7 +396,7 @@ public class LiLyPlayER extends JFrame {
     }
     
     /*
-     *  Drag and Drop functionality
+     *  Drag and Drop functionality for table
      */
     class TableDropTarget extends DropTarget {
         private String playlistName;
@@ -410,12 +410,10 @@ public class LiLyPlayER extends JFrame {
             try {
                 evt.acceptDrop(DnDConstants.ACTION_COPY);
 
-                List result;
-                result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                List result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
                 Path currentDirectory = Paths.get(".").toAbsolutePath();
                 for (Object o : result) {
                     String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
-
                     addSong(relativeFileName);
 
                     // Add to playlist if playlist is currently selected
@@ -535,6 +533,21 @@ public class LiLyPlayER extends JFrame {
             public void mousePressed(MouseEvent e) {
                 playlistTree.clearSelection();
                 setTable(repository.getAllSongs());
+            }
+        });
+        libraryTree.setDropTarget(new DropTarget() {
+            public void drop(DropTargetDropEvent evt) {
+                try {
+                    evt.acceptDrop(DnDConstants.ACTION_COPY);
+                    List result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    Path currentDirectory = Paths.get(".").toAbsolutePath();
+                    for (Object o : result) {
+                        String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
+                        addSong(relativeFileName);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
