@@ -273,7 +273,7 @@ public class LiLyPlayER extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         
         // right click pop up menu
-        final JPopupMenu songPopupMenu = new JPopupMenu();
+        JPopupMenu songPopupMenu = new JPopupMenu();
         JMenuItem addSongMenuItem = new JMenuItem("Add song");   
         addSongMenuItem.addActionListener(new ActionListener() {
             @Override
@@ -573,6 +573,17 @@ public class LiLyPlayER extends JFrame {
         }
     }
     
+    void setRemoveSongToPlaylistMenuItem() {
+    	addSongToPlaylistMenuItem.removeAll();
+        for (Playlist playlist : playlists) {
+            JMenuItem menuItem = new JMenuItem(playlist.playlistName());
+            menuItem.addActionListener((event) -> {
+                System.out.printf("Removing %s from playlists %s\n", playlist.playlistName());
+            });
+            addSongToPlaylistMenuItem.add(menuItem);
+        }
+    }
+    
     void initPlaylistTree() {
         playlistNode = new DefaultMutableTreeNode("Playlist");
         for (Playlist p : playlists) {
@@ -839,10 +850,10 @@ public class LiLyPlayER extends JFrame {
         String playlistName = selectedNode.getUserObject().toString();
         System.out.printf("Deleting Playlist: %s\n", playlistName);
         repository.removePlaylist(playlistName);
+        playlists = repository.getAllPlaylists();
         System.out.printf("\nSuccessfully deleted the playlist %s\n", playlistName);
-        playlistTreeModel.removeNodeFromParent(selectedNode);
-
-        // TODO: remove the playlist from addSongToPlaylistMenuItem
+        playlistTreeModel.removeNodeFromParent(selectedNode);       
+        setRemoveSongToPlaylistMenuItem();      
     }
     
     /*
