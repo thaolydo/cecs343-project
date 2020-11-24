@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.swing.event.*;
 import javax.swing.ImageIcon;
@@ -407,7 +408,10 @@ public class LiLyPlayER extends JFrame {
 
                 List<String> result = new ArrayList<>();
                 if (evt.getTransferable().isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                    result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    result = ((List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor))
+                        .stream()
+                        .map(file -> file.toString())
+                        .collect(Collectors.toList());
                 } else if (evt.getTransferable().isDataFlavorSupported(DataFlavor.stringFlavor)) {
                     String s = (String) evt.getTransferable().getTransferData(DataFlavor.stringFlavor);
                     String[] lines = s.split("\n");
@@ -583,7 +587,10 @@ public class LiLyPlayER extends JFrame {
                     evt.acceptDrop(DnDConstants.ACTION_COPY);
                     List<String> result = new ArrayList<>();
                     if (evt.getTransferable().isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-                        result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                        result = ((List<File>) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor))
+                            .stream()
+                            .map(file -> file.toString())
+                            .collect(Collectors.toList());
                     } else if (evt.getTransferable().isDataFlavorSupported(DataFlavor.stringFlavor)) {
                         String s = (String) evt.getTransferable().getTransferData(DataFlavor.stringFlavor);
                         String[] lines = s.split("\n");
@@ -776,8 +783,6 @@ public class LiLyPlayER extends JFrame {
     
     void removePlaylist() throws SQLException {
         DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
-        System.out.println(playlistTree.getLastSelectedPathComponent());
-
         String playlistName = selectedNode.getUserObject().toString();
         System.out.printf("Deleting Playlist: %s\n", playlistName);
         repository.removePlaylist(playlistName);
