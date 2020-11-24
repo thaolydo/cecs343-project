@@ -3,6 +3,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
@@ -13,6 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -38,11 +41,13 @@ import javax.swing.JSlider;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
+import javax.swing.TransferHandler;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.Mp3File;
@@ -116,6 +121,8 @@ public class LiLyPlayER extends JFrame {
         prev.addActionListener(bl5);
         
         addSongToPlaylistMenuItem = new JMenu("Add Song to Playlist");
+        
+        // TODO: add action listener to handle adding song to playlist
         
         volume = new JSlider();
         volLabel = new JLabel("   Volume: ");
@@ -243,7 +250,8 @@ public class LiLyPlayER extends JFrame {
             public void actionPerformed(ActionEvent e) {
             	String s = (String)JOptionPane.showInputDialog(main, "Enter name of playlist:\n" , "Add a Playlist", JOptionPane.PLAIN_MESSAGE);
             	try {
-            		addPlaylist(s);            		
+            		addPlaylist(s);           
+            		setTable(repository.getSongsFromPlaylist(s));
 				} catch (SQLException e1) {
 					e1.printStackTrace();
 				}
@@ -406,6 +414,7 @@ public class LiLyPlayER extends JFrame {
             }
         }
     }
+    
 
     /*
      * Function to initialize the table
@@ -415,6 +424,69 @@ public class LiLyPlayER extends JFrame {
         setTable(songs);
         table = new JTable(tableModel);
         table.setDragEnabled(true);
+        
+        /*
+         *	NEW DRAG AND DROP. COOMMENT OUT TO RUN CODE 
+         */
+        
+        DefaultTreeModel model = (DefaultTreeModel)playlistTree.getModel();
+        playlistTree.setTransferHandler(new TransferHandler() {
+          public boolean canImport(TransferHandler.TransferSupport support) {
+            if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
+                !support.isDrop()) {
+              return false;
+            }
+
+            JTree.DropLocation dropLocation =
+              (JTree.DropLocation)support.getDropLocation();
+
+            return dropLocation.getPath() != null;
+          }
+
+          public boolean importData(TransferHandler.TransferSupport support) {
+            if (!canImport(support)) {
+              return false;
+            }
+
+            JTree.DropLocation dropLocation =
+              (JTree.DropLocation)support.getDropLocation();
+
+            TreePath path = dropLocation.getPath();
+
+            Transferable transferable = support.getTransferable();
+
+            String transferData;
+            try {
+              transferData = (String)transferable.getTransferData(
+                DataFlavor.stringFlavor);
+            } catch (IOException e) {
+              return false;
+            } catch (UnsupportedFlavorException e) {
+              return false;
+            }
+
+            int childIndex = dropLocation.getChildIndex();
+            if (childIndex == -1) {
+              childIndex = model.getChildCount(path.getLastPathComponent());
+            }
+
+            DefaultMutableTreeNode newNode = 
+              new DefaultMutableTreeNode(transferData);
+            DefaultMutableTreeNode parentNode =
+              (DefaultMutableTreeNode)path.getLastPathComponent();
+            model.insertNodeInto(newNode, parentNode, childIndex);
+
+            TreePath newPath = path.pathByAddingChild(newNode);
+            playlistTree.makeVisible(newPath);
+            playlistTree.scrollRectToVisible(playlistTree.getPathBounds(newPath));
+
+            return true;
+          }
+        });
+        
+        /*
+         * 	COMMENT OUT UP TO HERE.
+         */
     }
 
     void setTable(List<Song> songs) {
@@ -440,6 +512,7 @@ public class LiLyPlayER extends JFrame {
     }
 
     void setAddSongToPlaylistMenuItem() {
+    	addSongToPlaylistMenuItem.removeAll();
         for (Playlist playlist : playlists) {
             JMenuItem menuItem = new JMenuItem(playlist.playlistName());
             menuItem.addActionListener((event) -> {
@@ -460,6 +533,7 @@ public class LiLyPlayER extends JFrame {
         playlistTree = new JTree(playlistNode);
         playlistTreeModel = (DefaultTreeModel) playlistTree.getModel();
         playlistTree.setRootVisible(true);
+        playlistTree.setDragEnabled(true);
 
         // Add selection listener
         playlistTree.addTreeSelectionListener(new TreeSelectionListener() {
@@ -648,17 +722,20 @@ public class LiLyPlayER extends JFrame {
             playlistNode.getChildCount());
         playlists = repository.getAllPlaylists();
         setAddSongToPlaylistMenuItem();
+        playlistTree.setSelectionInterval(playlistNode.getChildCount(), playlistNode.getChildCount());
+        
     }
     
     void removePlaylist() throws SQLException {
     	DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) playlistTree.getLastSelectedPathComponent();
+        System.out.println(playlistTree.getLastSelectedPathComponent());
+
         String playlistName = selectedNode.getUserObject().toString();
         System.out.printf("Deleting Playlist: %s/n", playlistName);
         repository.removePlaylist(playlistName);
-        System.out.printf("\nSuccessfully deleted the playlist %s\n", playlistName);
+        System.out.printf("\nSuccessfully deleted the playlist %s", playlistName);
         playlistTreeModel.removeNodeFromParent(selectedNode);
 
-        // TODO: remove the playlist from addSongToPlaylistMenuItem
     }
     
     /*
