@@ -3,7 +3,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
@@ -16,12 +15,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.Point;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Vector;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,12 +40,10 @@ import javax.swing.JSlider;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTree;
-import javax.swing.TransferHandler;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
 import com.mpatric.mp3agic.ID3v1;
@@ -86,13 +81,12 @@ public class LiLyPlayER extends JFrame {
     JTree playlistTree;
     DefaultTreeModel playlistTreeModel;
     DefaultMutableTreeNode playlistNode;
-    JMenu addSongToPlaylistMenuItem;
+    JMenu addSongToPlaylistMenu;
 
     JSlider volume;
     JLabel volLabel;
     
     String[] columns = { "Artist", "Song Title", "Album", "Year", "Genre", "Comment", "File Location" }; // column names
-    List<Playlist> playlists;
     JFileChooser jfc;
 
     private static final Repository repository = Repository.getInstance();
@@ -122,7 +116,7 @@ public class LiLyPlayER extends JFrame {
         prev = new JButton("Prev");
         prev.addActionListener(bl5);
         
-        addSongToPlaylistMenuItem = new JMenu("Add Song to Playlist");
+        addSongToPlaylistMenu = new JMenu("Add Song to Playlist");
         
         // TODO: add action listener to handle adding song to playlist
         
@@ -144,12 +138,12 @@ public class LiLyPlayER extends JFrame {
 
         // initialize and populate table with data from database
         JPanel leftPanel = new JPanel();
-        playlists = repository.getAllPlaylists();
-        setAddSongToPlaylistMenuItem();
+        List<Playlist> playlists = repository.getAllPlaylists();
+        setAddSongToPlaylistMenu(playlists);
         if (!isPlaylistWindow) {
             initTable(repository.getAllSongs());
             initLibraryTree();
-            initPlaylistTree();
+            initPlaylistTree(playlists);
 
             leftPanel.setLayout(new GridBagLayout());
             GridBagConstraints gbc = new GridBagConstraints();
@@ -192,7 +186,7 @@ public class LiLyPlayER extends JFrame {
         addMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	jfc.showOpenDialog(null);
+                jfc.showOpenDialog(null);
                 File inFile = jfc.getSelectedFile();
                 Path currentDirectory = Paths.get(".").toAbsolutePath();
                 if (inFile != null) {
@@ -209,7 +203,7 @@ public class LiLyPlayER extends JFrame {
         deleteMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 6) + " has been DELETED");
+                JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 6) + " has been DELETED");
                 String fp = (String) tableModel.getValueAt(currentSelectedRow, 6);
                 try {
                     repository.removeSong(fp);
@@ -248,14 +242,14 @@ public class LiLyPlayER extends JFrame {
         addPLMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	String s = (String)JOptionPane.showInputDialog(main, "Enter name of playlist:\n" , "Add a Playlist", JOptionPane.PLAIN_MESSAGE);
-            	try {
-            		addPlaylist(s);           
-            		setTable(repository.getSongsFromPlaylist(s));
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
-            	
+                String s = (String)JOptionPane.showInputDialog(main, "Enter name of playlist:\n" , "Add a Playlist", JOptionPane.PLAIN_MESSAGE);
+                try {
+                    addPlaylist(s);           
+                    setTable(repository.getSongsFromPlaylist(s));
+                } catch (SQLException e1) {
+                    e1.printStackTrace();
+                }
+                
             }
         });
 
@@ -278,7 +272,7 @@ public class LiLyPlayER extends JFrame {
         addSongMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	jfc.showOpenDialog(null);
+                jfc.showOpenDialog(null);
                 File inFile = jfc.getSelectedFile();
                 Path currentDirectory = Paths.get(".").toAbsolutePath();
                 if (inFile != null) {
@@ -293,7 +287,7 @@ public class LiLyPlayER extends JFrame {
         deleteSongMenuItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 6) + " has been DELETED");
+                JOptionPane.showMessageDialog(frame, (String) tableModel.getValueAt(currentSelectedRow, 6) + " has been DELETED");
                 String fp = (String) tableModel.getValueAt(currentSelectedRow, 6);
                 try {
                     repository.removeSong(fp);
@@ -308,7 +302,7 @@ public class LiLyPlayER extends JFrame {
         
         songPopupMenu.add(addSongMenuItem);
         songPopupMenu.add(deleteSongMenuItem);
-        songPopupMenu.add(addSongToPlaylistMenuItem);
+        songPopupMenu.add(addSongToPlaylistMenu);
         table.setComponentPopupMenu(songPopupMenu);
         
         volume = new JSlider();
@@ -368,7 +362,7 @@ public class LiLyPlayER extends JFrame {
         
         // Add mouse listener
         MouseListener mouseListener = new MouseAdapter() {
-        	@Override
+            @Override
             public void mousePressed(MouseEvent e) {
                 currentSelectedRow = table.getSelectedRow();
                 System.out.println("Selected index = " + currentSelectedRow);
@@ -455,69 +449,6 @@ public class LiLyPlayER extends JFrame {
         setTable(songs);
         table = new JTable(tableModel);
         table.setDragEnabled(true);
-        
-        /*
-         *	NEW DRAG AND DROP. COOMMENT OUT TO RUN CODE 
-         */
-        
-        // DefaultTreeModel model = (DefaultTreeModel)playlistTree.getModel();
-        // playlistTree.setTransferHandler(new TransferHandler() {
-        //   public boolean canImport(TransferHandler.TransferSupport support) {
-        //     if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor) ||
-        //         !support.isDrop()) {
-        //       return false;
-        //     }
-
-        //     JTree.DropLocation dropLocation =
-        //       (JTree.DropLocation)support.getDropLocation();
-
-        //     return dropLocation.getPath() != null;
-        //   }
-
-        //   public boolean importData(TransferHandler.TransferSupport support) {
-        //     if (!canImport(support)) {
-        //       return false;
-        //     }
-
-        //     JTree.DropLocation dropLocation =
-        //       (JTree.DropLocation)support.getDropLocation();
-
-        //     TreePath path = dropLocation.getPath();
-
-        //     Transferable transferable = support.getTransferable();
-
-        //     String transferData;
-        //     try {
-        //       transferData = (String)transferable.getTransferData(
-        //         DataFlavor.stringFlavor);
-        //     } catch (IOException e) {
-        //       return false;
-        //     } catch (UnsupportedFlavorException e) {
-        //       return false;
-        //     }
-
-        //     int childIndex = dropLocation.getChildIndex();
-        //     if (childIndex == -1) {
-        //       childIndex = model.getChildCount(path.getLastPathComponent());
-        //     }
-
-        //     DefaultMutableTreeNode newNode = 
-        //       new DefaultMutableTreeNode(transferData);
-        //     DefaultMutableTreeNode parentNode =
-        //       (DefaultMutableTreeNode)path.getLastPathComponent();
-        //     model.insertNodeInto(newNode, parentNode, childIndex);
-
-        //     TreePath newPath = path.pathByAddingChild(newNode);
-        //     playlistTree.makeVisible(newPath);
-        //     playlistTree.scrollRectToVisible(playlistTree.getPathBounds(newPath));
-
-        //     return true;
-        //   }
-        // });
-        
-        /*
-         * 	COMMENT OUT UP TO HERE.
-         */
     }
 
     void setTable(List<Song> songs) {
@@ -559,8 +490,8 @@ public class LiLyPlayER extends JFrame {
         });
     }
 
-    void setAddSongToPlaylistMenuItem() {
-    	addSongToPlaylistMenuItem.removeAll();
+    void setAddSongToPlaylistMenu(List<Playlist> playlists) {
+        addSongToPlaylistMenu.removeAll();
         for (Playlist playlist : playlists) {
             JMenuItem menuItem = new JMenuItem(playlist.playlistName());
             menuItem.addActionListener((event) -> {
@@ -569,25 +500,14 @@ public class LiLyPlayER extends JFrame {
                 System.out.printf("Adding song %s to the playlist %s\n", songTitle, playlist.playlistName());
                 repository.addSongToPlaylist(songLocation, playlist.playlistName());
             });
-            addSongToPlaylistMenuItem.add(menuItem);
+            addSongToPlaylistMenu.add(menuItem);
         }
     }
     
-    void setRemoveSongToPlaylistMenuItem() {
-    	addSongToPlaylistMenuItem.removeAll();
-        for (Playlist playlist : playlists) {
-            JMenuItem menuItem = new JMenuItem(playlist.playlistName());
-            menuItem.addActionListener((event) -> {
-                System.out.printf("Removing %s from playlists %s\n", playlist.playlistName());
-            });
-            addSongToPlaylistMenuItem.add(menuItem);
-        }
-    }
-    
-    void initPlaylistTree() {
+    void initPlaylistTree(List<Playlist> playlists) {
         playlistNode = new DefaultMutableTreeNode("Playlist");
         for (Playlist p : playlists) {
-        	playlistNode.add(new DefaultMutableTreeNode(p.playlistName()));
+            playlistNode.add(new DefaultMutableTreeNode(p.playlistName()));
         }
         playlistTree = new JTree(playlistNode);
         playlistTreeModel = (DefaultTreeModel) playlistTree.getModel();
@@ -630,10 +550,10 @@ public class LiLyPlayER extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-					removePlaylist();
-				} catch (SQLException e1) {
-					e1.printStackTrace();
-				}
+                    removePlaylist();
+                } catch (SQLException e1) {
+                    e1.printStackTrace();
+                }
             }
         });
         
@@ -646,10 +566,7 @@ public class LiLyPlayER extends JFrame {
             public void drop(DropTargetDropEvent evt) {
                 try {
                     evt.acceptDrop(DnDConstants.ACTION_COPY);
-                    List<String> result = new ArrayList<String>();
-                    for (DataFlavor flavor : evt.getTransferable().getTransferDataFlavors()) {
-                        System.out.printf("Ly: flavor = %s\n", flavor);
-                    }
+                    List<String> result = new ArrayList<>();
                     if (evt.getTransferable().isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                         result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
                     } else if (evt.getTransferable().isDataFlavorSupported(DataFlavor.stringFlavor)) {
@@ -837,23 +754,21 @@ public class LiLyPlayER extends JFrame {
             new DefaultMutableTreeNode(plName),
             playlistNode,
             playlistNode.getChildCount());
-        playlists = repository.getAllPlaylists();
-        setAddSongToPlaylistMenuItem();
+        setAddSongToPlaylistMenu(repository.getAllPlaylists());
         playlistTree.setSelectionInterval(playlistNode.getChildCount(), playlistNode.getChildCount());
         
     }
     
     void removePlaylist() throws SQLException {
-    	DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
+        DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
         System.out.println(playlistTree.getLastSelectedPathComponent());
 
         String playlistName = selectedNode.getUserObject().toString();
         System.out.printf("Deleting Playlist: %s\n", playlistName);
         repository.removePlaylist(playlistName);
-        playlists = repository.getAllPlaylists();
         System.out.printf("\nSuccessfully deleted the playlist %s\n", playlistName);
         playlistTreeModel.removeNodeFromParent(selectedNode);       
-        setRemoveSongToPlaylistMenuItem();      
+        setAddSongToPlaylistMenu(repository.getAllPlaylists());
     }
     
     /*
@@ -871,9 +786,4 @@ public class LiLyPlayER extends JFrame {
         };
     }
     
-    private Object[] playlistToNode(Playlist playlist) {
-        return new Object[] {
-            playlist.playlistName()
-        };
-    }
 }
