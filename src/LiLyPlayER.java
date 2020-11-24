@@ -429,7 +429,11 @@ public class LiLyPlayER extends JFrame {
                         repository.addSongToPlaylist(relativeFileName, this.playlistName);
                     }
                 }
-                setTable(repository.getSongsFromPlaylist(this.playlistName));
+                setTable(this.playlistName != null ? 
+                    repository.getSongsFromPlaylist(this.playlistName) :
+                    repository.getAllSongs());
+            } catch (UnsupportedFlavorException ex) {
+                System.out.println("Unsupported drag-n-drop functionality");
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -546,6 +550,8 @@ public class LiLyPlayER extends JFrame {
                         String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
                         addSong(relativeFileName);
                     }
+                } catch (UnsupportedFlavorException e) {
+                    System.out.println("Unsupported drag-n-drop functionality");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -629,10 +635,26 @@ public class LiLyPlayER extends JFrame {
             public void drop(DropTargetDropEvent evt) {
                 try {
                     evt.acceptDrop(DnDConstants.ACTION_COPY);
-                    List result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    List<String> result = new ArrayList<String>();
+                    for (DataFlavor flavor : evt.getTransferable().getTransferDataFlavors()) {
+                        System.out.printf("Ly: flavor = %s\n", flavor);
+                    }
+                    if (evt.getTransferable().isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                        result = (List) evt.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+                    } else if (evt.getTransferable().isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                        String s = (String) evt.getTransferable().getTransferData(DataFlavor.stringFlavor);
+                        String[] lines = s.split("\n");
+                        for (String line : lines) {
+                            String songLocation = line.substring(line.lastIndexOf("\t") + 1);
+                            result.add(songLocation);
+                        }
+                    } else {
+                        System.out.println("Unsupported drag-n-drop functionality");
+                        return;
+                    }
                     Path currentDirectory = Paths.get(".").toAbsolutePath();
-                    for (Object o : result) {
-                        String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
+                    for (String fileName : result) {
+                        String relativeFileName = currentDirectory.relativize(Path.of(fileName.toString()).toAbsolutePath()).toString();
                         addSong(relativeFileName);
 
                         Point loc = evt.getLocation();
