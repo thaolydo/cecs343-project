@@ -567,11 +567,18 @@ public class LiLyPlayER extends JFrame {
         removePLItemPUM.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                try {
-                    removePlaylist();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
+            	int n = JOptionPane.showConfirmDialog(
+            		    frame,
+            		    "Are you sure you want to delete playlist?",
+            		    "Delete Confirmation",
+            		    JOptionPane.YES_NO_OPTION);
+                  if (n != 1) {
+	                try {
+	                    removePlaylist();
+	                } catch (SQLException e1) {
+	                    e1.printStackTrace();
+	                }
+	            }
             }
         });
         
