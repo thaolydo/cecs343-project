@@ -423,25 +423,27 @@ public class LiLyPlayER extends JFrame {
                     return;
                 }
                 Path currentDirectory = Paths.get(".").toAbsolutePath();
+
+                // Find playlist name
+                String playlistName = this.playlistName;
+                if (playlistName == null) {
+                    DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
+                    if (selectedNode != null && selectedNode != playlistNode) {
+                        playlistName = selectedNode.getUserObject().toString();
+                    }
+                }
                 for (String fileName : result) {
                     String relativeFileName = currentDirectory.relativize(Path.of(fileName).toAbsolutePath()).toString();
                     addSong(relativeFileName);
-
-                    // Add to playlist if playlist is currently selected
-                    DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
-                    if (selectedNode != null && selectedNode != playlistNode) {
-                        String playlistName = selectedNode.getUserObject().toString();
+                    if (playlistName != null) {
                         System.out.printf("Adding song %s to the playlist %s\n", relativeFileName, playlistName);
                         repository.addSongToPlaylist(relativeFileName, playlistName);
                     }
-                    if (this.playlistName != null) {
-                        System.out.printf("Adding song %s to the playlist %s\n", relativeFileName, playlistName);
-                        repository.addSongToPlaylist(relativeFileName, this.playlistName);
-                    }
                 }
-                setTable(this.playlistName != null ? 
-                    repository.getSongsFromPlaylist(this.playlistName) :
-                    repository.getAllSongs());
+
+                if (playlistName != null) {
+                    setTable(repository.getSongsFromPlaylist(playlistName));
+                }
             } catch (UnsupportedFlavorException ex) {
                 System.out.println("Unsupported drag-n-drop functionality");
             } catch (Exception ex) {
