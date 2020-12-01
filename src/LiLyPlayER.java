@@ -479,6 +479,7 @@ public class LiLyPlayER extends JFrame {
         libraryTree = new JTree(libraryNode);
         libraryTree.setRootVisible(true);
         selectedNode = libraryNode;
+        libraryTree.setSelectionPath(new TreePath(libraryNode));
 
         libraryTree.addMouseListener(new MouseAdapter() {
             @Override
@@ -518,6 +519,7 @@ public class LiLyPlayER extends JFrame {
                 String songTitle = (String) tableModel.getValueAt(currentSelectedRow, 1);
                 System.out.printf("Adding song %s to the playlist %s\n", songTitle, playlist.playlistName());
                 repository.addSongToPlaylist(songLocation, playlist.playlistName());
+                playerSubject.update();
             });
             addSongToPlaylistMenu.add(menuItem);
         }
@@ -626,8 +628,8 @@ public class LiLyPlayER extends JFrame {
                             repository.addSongToPlaylist(relativeFileName, playlistName);
                             playlistTree.setSelectionPath(treePath);
                         }
-                        
                     }
+                    playerSubject.update();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
