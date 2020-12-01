@@ -82,6 +82,10 @@ public class LiLyPlayER extends JFrame {
     JTree playlistTree;
     DefaultTreeModel playlistTreeModel;
     DefaultMutableTreeNode playlistNode;
+    DefaultMutableTreeNode libraryNode;
+    DefaultMutableTreeNode selectedNode;
+    String title;
+    boolean isPlaylistWindow;
     JMenu addSongToPlaylistMenu;
 
     JSlider volume;
@@ -91,8 +95,12 @@ public class LiLyPlayER extends JFrame {
     JFileChooser jfc;
 
     private static final Repository repository = Repository.getInstance();
+    private static final PlayerSubject playerSubject = PlayerSubject.getInstance();
 
     public LiLyPlayER(String title, boolean isPlaylistWindow, int onCloseOperation) {
+        playerSubject.register(this);
+        this.title = title;
+        this.isPlaylistWindow = isPlaylistWindow;
         player = new BasicPlayer();
         jfc = new JFileChooser("src/resources");
 
@@ -119,8 +127,6 @@ public class LiLyPlayER extends JFrame {
         
         addSongToPlaylistMenu = new JMenu("Add Song to Playlist");
         
-        // TODO: add action listener to handle adding song to playlist
-        
         volume = new JSlider();
         volLabel = new JLabel("   Volume: ");
         volume.addChangeListener(new ChangeListener() {
@@ -142,9 +148,9 @@ public class LiLyPlayER extends JFrame {
         List<Playlist> playlists = repository.getAllPlaylists();
         setAddSongToPlaylistMenu(playlists);
         if (!isPlaylistWindow) {
-            initTable(repository.getAllSongs());
             initLibraryTree();
             initPlaylistTree(playlists);
+            initTable();
 
             leftPanel.setLayout(new GridBagLayout());
             GridBagConstraints gbc = new GridBagConstraints();
@@ -155,7 +161,7 @@ public class LiLyPlayER extends JFrame {
             gbc.gridy = 1;
             leftPanel.add(playlistTree, gbc);
         } else {
-            initTable(repository.getSongsFromPlaylist(title));
+            initTable();
         }
         
         scrollPane = new JScrollPane(table);
@@ -208,7 +214,7 @@ public class LiLyPlayER extends JFrame {
                 String fp = (String) tableModel.getValueAt(currentSelectedRow, 6);
                 try {
                     repository.removeSong(fp);
-                    tableModel.removeRow(currentSelectedRow);
+                    playerSubject.update();
                 } catch (SQLException ex) {
                     ex.printStackTrace();
                 }
@@ -245,8 +251,9 @@ public class LiLyPlayER extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 String s = (String)JOptionPane.showInputDialog(main, "Enter name of playlist:\n" , "Add a Playlist", JOptionPane.PLAIN_MESSAGE);
                 try {
-                    addPlaylist(s);           
-                    setTable(repository.getSongsFromPlaylist(s));
+                    addPlaylist(s);
+                    selectedNode = null;
+                    refreshTable();
                 } catch (SQLException e1) {
                     e1.printStackTrace();
                 }
@@ -441,9 +448,7 @@ public class LiLyPlayER extends JFrame {
                     }
                 }
 
-                if (playlistName != null) {
-                    setTable(repository.getSongsFromPlaylist(playlistName));
-                }
+                playerSubject.update();
             } catch (UnsupportedFlavorException ex) {
                 System.out.println("Unsupported drag-n-drop functionality");
             } catch (Exception ex) {
@@ -462,33 +467,28 @@ public class LiLyPlayER extends JFrame {
     /*
      * Function to initialize the table
      */
-    void initTable(List<Song> songs) {
+    void initTable() {
         tableModel = new DefaultTableModel();
-        setTable(songs);
         table = new JTable(tableModel);
         table.setDragEnabled(true);
-    }
-
-    void setTable(List<Song> songs) {
-        Object[][] data = new Object[songs.size()][];
-        int i = 0;
-        for (Song song : songs) {
-            data[i++] = songToTableRow(song);
-        }
-        tableModel.setDataVector(data, columns);
+        refreshTable();
     }
 
     void initLibraryTree() {
-        DefaultMutableTreeNode libNode = new DefaultMutableTreeNode("Library");
-        libraryTree = new JTree(libNode);
+        libraryNode = new DefaultMutableTreeNode("Library");
+        libraryTree = new JTree(libraryNode);
         libraryTree.setRootVisible(true);
+        selectedNode = libraryNode;
+
         libraryTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 playlistTree.clearSelection();
-                setTable(repository.getAllSongs());
+                selectedNode = libraryNode;
+                refreshTable();
             }
         });
+
         libraryTree.setDropTarget(new DropTarget() {
             public void drop(DropTargetDropEvent evt) {
                 try {
@@ -499,6 +499,7 @@ public class LiLyPlayER extends JFrame {
                         String relativeFileName = currentDirectory.relativize(Path.of(o.toString()).toAbsolutePath()).toString();
                         addSong(relativeFileName);
                     }
+                    refreshTable();
                 } catch (UnsupportedFlavorException e) {
                     System.out.println("Unsupported drag-n-drop functionality");
                 } catch (Exception e) {
@@ -535,19 +536,15 @@ public class LiLyPlayER extends JFrame {
         // Add selection listener
         playlistTree.addTreeSelectionListener(new TreeSelectionListener() {
             public void valueChanged(TreeSelectionEvent e) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) playlistTree.getLastSelectedPathComponent();
+                DefaultMutableTreeNode selectedPlaylistNode = getSelectedPlaylistNode();
         
                 /* if nothing is selected */ 
-                if (node == null || node == playlistNode) {
+                if (selectedPlaylistNode == null || selectedPlaylistNode == playlistNode) {
                     return;
                 }
                 libraryTree.clearSelection();
-        
-                /* retrieve the node that was selected */ 
-                String playlistName = node.getUserObject().toString();
-
-                /* React to the node selection. */
-                setTable(repository.getSongsFromPlaylist(playlistName));
+                selectedNode = selectedPlaylistNode;
+                refreshTable();
             }
         });
 
@@ -557,10 +554,14 @@ public class LiLyPlayER extends JFrame {
         newWindowItemPUM.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                DefaultMutableTreeNode selectedNode = getSelectedPlaylistNode();
-                if (selectedNode != null && selectedNode != playlistNode) {
-                    String playlistName = selectedNode.getUserObject().toString();
+                DefaultMutableTreeNode selectedPlaylistNode = getSelectedPlaylistNode();
+                if (selectedPlaylistNode != null && selectedPlaylistNode != playlistNode) {
+                    String playlistName = selectedPlaylistNode.getUserObject().toString();
                     new LiLyPlayER(playlistName, true, DISPOSE_ON_CLOSE);
+                    selectedNode = libraryNode;
+                    libraryTree.setSelectionPath(new TreePath(libraryNode));
+                    playlistTree.clearSelection();
+                    refreshTable();
                 }
             }
         });
@@ -812,6 +813,28 @@ public class LiLyPlayER extends JFrame {
             song.comment(),
             song.fileLocation()
         };
+    }
+
+    private void setTable(List<Song> songs) {
+        Object[][] data = new Object[songs.size()][];
+        int i = 0;
+        for (Song song : songs) {
+            data[i++] = songToTableRow(song);
+        }
+        tableModel.setDataVector(data, columns);
+    }
+
+    public void refreshTable() {
+        if (isPlaylistWindow) {
+            setTable(repository.getSongsFromPlaylist(title));
+        } else if (selectedNode == libraryNode) {
+            setTable(repository.getAllSongs());
+        } else if (selectedNode == null) {
+            setTable(new ArrayList<>());
+        } else {
+            String playlistName = selectedNode.getUserObject().toString();
+            setTable(repository.getSongsFromPlaylist(playlistName));
+        }
     }
     
 }
